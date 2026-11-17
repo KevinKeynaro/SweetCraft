@@ -64,7 +64,7 @@ UMKM bakery sering menghadapi kendala dalam pencatatan pesanan khusus (*custom c
 ## Struktur Direktori
 
 ```text
-Novelist-app/
+SweetCraft/
 ├── backend/
 │   ├── database/             # File migrasi / skema SQL
 │   │   └── schema.sql        # DDL struktur tabel basis data
@@ -89,7 +89,7 @@ Novelist-app/
 │   │   ├── models/           # Data model serialisasi JSON
 │   │   ├── providers/        # State management antarmuka
 │   │   ├── services/         # HTTP service pemanggil REST API
-│   │   ├── views/            # Layar antarmuka (Auth, Menu, Order, Admin)
+│   │   ├── views/            # Layar antarmuka (Auth, Menu, Order, Penjual)
 │   │   └── widgets/          # Komponen antarmuka yang dapat digunakan ulang
 │   └── pubspec.yaml          # Dependensi Flutter
 └── README.md
