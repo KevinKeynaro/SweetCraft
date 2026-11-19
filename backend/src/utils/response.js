@@ -1,4 +1,5 @@
 // Helper respons konsisten: { success, message, data }
+// Dipakai auth, cakes, dan orders.
 const ok = (res, status, message, data = null) =>
   res.status(status).json({ success: true, message, data });
 

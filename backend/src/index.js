@@ -6,6 +6,7 @@ const pool = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const cakeRoutes = require('./routes/cakeRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
 app.use(cors());
@@ -19,6 +20,7 @@ app.get('/health', (req, res) =>
 app.use('/api/auth', authRoutes);
 app.use('/api/cakes', cakeRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Express 5: rejection dari handler async otomatis diteruskan ke middleware ini.
 // Source: https://expressjs.com/en/guide/error-handling.html
