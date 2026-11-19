@@ -20,7 +20,10 @@ const validate = (schema) => (req, res, next) => {
     });
   }
 
-  req.body = result.data.body; // body sudah bersih & tervalidasi untuk controller
+  // Hanya timpa body bila schema memang memvalidasi body.
+  // Tanpa guard ini, validate(params) pada route PUT menghapus req.body
+  // sebelum validator body berikutnya berjalan.
+  if (result.data.body !== undefined) req.body = result.data.body;
   return next();
 };
 

@@ -8,7 +8,7 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "seed": "node database/seed.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test --test-concurrency=1 tests/auth.test.js tests/cakes.test.js tests/orders.test.js tests/upload.test.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
