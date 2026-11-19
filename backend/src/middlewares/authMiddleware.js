@@ -21,4 +21,16 @@ function verifyToken(req, res, next) {
   }
 }
 
-module.exports = { verifyToken };
+// Otorisasi berbasis role — dipakai SETELAH verifyToken (req.user sudah terisi).
+function requireRole(role) {
+  return (req, res, next) => {
+    if (!req.user || req.user.role !== role) {
+      return res
+        .status(403)
+        .json({ success: false, message: `Akses ditolak. Hanya ${role}.`, data: null });
+    }
+    return next();
+  };
+}
+
+module.exports = { verifyToken, requireRole };

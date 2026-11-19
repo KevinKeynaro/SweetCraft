@@ -1,14 +1,9 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { ok, fail } = require('../utils/response');
 
 const SALT_ROUNDS = 10;
-
-// Format respons konsisten: { success, message, data }
-const ok = (res, status, message, data = null) =>
-  res.status(status).json({ success: true, message, data });
-const fail = (res, status, message, data = null) =>
-  res.status(status).json({ success: false, message, data });
 
 // Register: role SELALU 'pembeli' — akun penjual hanya lewat seed.
 // (Keamanan: kalau register bebas pilih role, siapa pun bisa jadi penjual via API.)
