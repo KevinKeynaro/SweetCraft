@@ -312,6 +312,16 @@ Prasyarat pengujian:
 - Tes hanya membuat/menghapus data miliknya sendiri (kue, pesanan, akun `test.*@example.com`)
   dan menghapus asset Cloudinary uji setelah selesai.
 
+### Aturan pengujian manual
+
+- [ ] Jalankan `npm test` setelah setiap perubahan pada **authentication, cakes, orders, atau upload**
+- [ ] Jalankan seluruh suite sebelum commit perubahan backend
+- [ ] Jalankan seluruh suite sebelum rilis
+- [ ] Jika ada tes gagal: investigasi penyebabnya sebelum melanjutkan. Jangan mengubah
+      implementasi hanya agar tes lolos.
+
+Tidak memakai CI, cron, atau workflow — suite dijalankan manual di komputer lokal.
+
 Cek server: `GET http://localhost:5000/health` → `{ "success": true, ... }`
 
 Login uji (PowerShell):
