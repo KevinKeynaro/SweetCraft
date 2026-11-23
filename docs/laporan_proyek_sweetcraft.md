@@ -164,4 +164,4 @@ Sistem mengadopsi 4 entitas utama yang saling berelasi dengan integritas data be
 | 5 | **CRUD 2 Data Berelasi** | CRUD Menu Kue (`categories` ↔ `cakes`) & Kelola Pesanan (`orders`). | Terpenuhi |
 | 6 | **Upload & Serving File** | Upload foto menu & referensi custom cake via Multer + Cloudinary. | Terpenuhi |
 | 7 | **Mobile App (Flutter)** | UI interaktif, form input, image picker, navigasi role-based. | Terpenuhi |
-| 8 | **Akun Pengujian** | Akun Penjual (`penjual@sweetcraft.com`) dan Pembeli (`pembeli@sweetcraft.com`). | Terpenuhi |
+| 8 | **Akun Pengujian** | Akun Penjual (`penjual@example.com`) dan Pembeli (`pembeli@example.com`). | Terpenuhi |
