@@ -24,7 +24,7 @@ class AppButton extends StatelessWidget {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
     );
-    const minimumSize = Size.fromHeight(48);
+    const minimumSize = Size.fromHeight(52);
     final child = isLoading
         ? SizedBox(
             width: 18,

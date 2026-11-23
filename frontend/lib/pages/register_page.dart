@@ -113,6 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF8C4A27),
               minimumSize: const Size(48, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               textStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -138,11 +139,16 @@ class _RegisterPageState extends State<RegisterPage> {
               textInputAction: TextInputAction.next,
               textCapitalization: TextCapitalization.words,
               autofillHints: const [AutofillHints.name],
+              prefixIcon: const Icon(
+                Icons.person_outline_rounded,
+                size: 20,
+                color: Color(0xFF8C4A27),
+              ),
               validator: (value) =>
                   _serverErrors['name'] ?? _validateName(value),
               onChanged: (_) => _clearServerError('name'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             AppTextField(
               label: 'Email',
               hint: 'nama@email.com',
@@ -150,11 +156,16 @@ class _RegisterPageState extends State<RegisterPage> {
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],
+              prefixIcon: const Icon(
+                Icons.mail_outline_rounded,
+                size: 20,
+                color: Color(0xFF8C4A27),
+              ),
               validator: (value) =>
                   _serverErrors['email'] ?? _validateEmail(value),
               onChanged: (_) => _clearServerError('email'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             AppTextField(
               label: 'Nomor HP (opsional)',
               hint: '08xxxxxxxxxx',
@@ -162,11 +173,16 @@ class _RegisterPageState extends State<RegisterPage> {
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.telephoneNumber],
+              prefixIcon: const Icon(
+                Icons.phone_outlined,
+                size: 20,
+                color: Color(0xFF8C4A27),
+              ),
               validator: (value) =>
                   _serverErrors['phone'] ?? _validatePhone(value),
               onChanged: (_) => _clearServerError('phone'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             AppTextField(
               label: 'Password',
               hint: 'Minimal 6 karakter',
@@ -175,6 +191,11 @@ class _RegisterPageState extends State<RegisterPage> {
               isPassword: true,
               textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.newPassword],
+              prefixIcon: const Icon(
+                Icons.lock_outline_rounded,
+                size: 20,
+                color: Color(0xFF8C4A27),
+              ),
               validator: (value) =>
                   _serverErrors['password'] ?? _validateRegisterPassword(value),
               onChanged: (_) => _clearServerError('password'),

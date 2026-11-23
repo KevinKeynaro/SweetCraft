@@ -135,6 +135,7 @@ class _LoginPageState extends State<LoginPage> {
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF8C4A27),
               minimumSize: const Size(48, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               textStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -162,11 +163,17 @@ class _LoginPageState extends State<LoginPage> {
                 AutofillHints.username,
                 AutofillHints.email,
               ],
+              prefixIcon: const Icon(
+                Icons.mail_outline_rounded,
+                size: 20,
+                color: Color(0xFF8C4A27),
+              ),
               validator: (value) =>
                   _serverErrors['email'] ?? _validateEmail(value),
               onChanged: (_) => _clearServerError('email'),
             ),
-            const SizedBox(height: 16),
+            // Spacing antar field form (20dp)
+            const SizedBox(height: 20),
             AppTextField(
               label: 'Password',
               hint: 'Masukkan password Anda',
@@ -174,11 +181,18 @@ class _LoginPageState extends State<LoginPage> {
               isPassword: true,
               textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.password],
+              prefixIcon: const Icon(
+                Icons.lock_outline_rounded,
+                size: 20,
+                color: Color(0xFF8C4A27),
+              ),
               validator: (value) =>
                   _serverErrors['password'] ?? _validateLoginPassword(value),
               onChanged: (_) => _clearServerError('password'),
               onFieldSubmitted: (_) => _submit(),
             ),
+            // Spacing ergonomis form ke action button (24dp)
+            // Sesuai Touch Target Guidelines & Material 3
             const SizedBox(height: 24),
             AppButton(
               label: 'Masuk',
