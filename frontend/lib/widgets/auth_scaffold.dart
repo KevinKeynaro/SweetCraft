@@ -4,8 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 /// Layout scaffolding terpadu untuk halaman autentikasi (Login & Register).
 ///
 /// Menggunakan komposisi visual split-screen:
-/// - Area Header (~28% tinggi layar): Logo SweetCraft 2x lebih besar (360x180dp),
-///   dihiasi ornamen lingkaran coklat di sudut kanan atas dan kiri bawah header.
+/// - Area Header (~28% tinggi layar): Logo SweetCraft diperbesar hingga 480x240dp,
+///   mengecil otomatis di layar sempit, dihiasi ornamen lingkaran coklat di
+///   sudut kanan atas dan kiri bawah header.
 /// - Container Putih Melengkung (~72% tinggi layar): Memuat judul di posisi atas
 ///   dengan margin-top yang lega (40dp) agar tidak mepet lengkungan container,
 ///   serta mematuhi Touch Target Guidelines (WCAG 2.5.8 & Material Design 3).
@@ -74,23 +75,27 @@ class AuthScaffold extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // Logo SweetCraft — Diperbesar 2x (360 x 180 dp)
+                        // Logo SweetCraft — target 480x240, mengecil otomatis
+                        // di layar sempit agar tidak overflow.
                         Center(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Image.asset(
-                              'assets/images/sweetcraft_logo_concept_1.png',
-                              width: 360,
-                              height: 180,
-                              fit: BoxFit.contain,
-                              semanticLabel: 'Logo SweetCraft',
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(
-                                  Icons.cake_outlined,
-                                  size: 96,
-                                  color: Color(0xFF8C4A27),
-                                );
-                              },
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Image.asset(
+                                'assets/images/sweetcraft_logo_concept_1.png',
+                                width: 480,
+                                height: 240,
+                                fit: BoxFit.contain,
+                                semanticLabel: 'Logo SweetCraft',
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.cake_outlined,
+                                    size: 96,
+                                    color: Color(0xFF8C4A27),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                         ),

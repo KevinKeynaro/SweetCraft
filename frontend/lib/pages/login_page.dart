@@ -8,6 +8,10 @@ import '../../widgets/auth_scaffold.dart';
 import 'home_page.dart';
 import 'register_page.dart';
 
+// Spacing form login
+const double _kFieldGap = 24; // jarak antar field
+const double _kButtonGap = 48; // jarak field terakhir ke tombol
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -154,7 +158,7 @@ class _LoginPageState extends State<LoginPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AppTextField(
-              label: 'Email',
+              semanticLabel: 'Email',
               hint: 'nama@email.com',
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
@@ -166,16 +170,15 @@ class _LoginPageState extends State<LoginPage> {
               prefixIcon: const Icon(
                 Icons.mail_outline_rounded,
                 size: 20,
-                color: Color(0xFF8C4A27),
+                color: Color(0xFF6B7280),
               ),
               validator: (value) =>
                   _serverErrors['email'] ?? _validateEmail(value),
               onChanged: (_) => _clearServerError('email'),
             ),
-            // Spacing antar field form (20dp)
-            const SizedBox(height: 20),
+            const SizedBox(height: _kFieldGap),
             AppTextField(
-              label: 'Password',
+              semanticLabel: 'Password',
               hint: 'Masukkan password Anda',
               controller: _passwordController,
               isPassword: true,
@@ -184,16 +187,14 @@ class _LoginPageState extends State<LoginPage> {
               prefixIcon: const Icon(
                 Icons.lock_outline_rounded,
                 size: 20,
-                color: Color(0xFF8C4A27),
+                color: Color(0xFF6B7280),
               ),
               validator: (value) =>
                   _serverErrors['password'] ?? _validateLoginPassword(value),
               onChanged: (_) => _clearServerError('password'),
               onFieldSubmitted: (_) => _submit(),
             ),
-            // Spacing ergonomis form ke action button (24dp)
-            // Sesuai Touch Target Guidelines & Material 3
-            const SizedBox(height: 24),
+            const SizedBox(height: _kButtonGap),
             AppButton(
               label: 'Masuk',
               onPressed: _submit,
