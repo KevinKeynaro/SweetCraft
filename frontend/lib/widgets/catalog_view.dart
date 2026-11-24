@@ -6,10 +6,11 @@ import '../services/api.dart';
 /// Halaman Home / Katalog SweetCraft yang mengacu pada gambar referensi:
 /// 1. Header Container cokelat tua dengan label "Location", pin lokasi, dan dropdown.
 /// 2. Search bar full-width berlatar putih dengan placeholder "Search".
-/// 3. Section "Special Offers" & promotion banner cokelat dengan badge "Limited time.",
-///    "Get Special Offer", "Up to 50%", tombol "Shop Now", gambar produk, dan pagination dots.
-/// 4. Section "Categories" dengan circular container abu-abu lembut dan nama kategori di bawahnya.
+/// 3. Section "Special Offers" & promotion banner warm saddle dengan badge "Limited time.",
+///    "Get Special Offer", "Up to 50%", tombol "Shop Now", gambar Tarts.png, dan pagination dots.
+/// 4. Section "Categories" dengan wadah segi-empat rounded edge abu-abu lembut dan nama di-center.
 /// 5. Section "Featured Products" (hanya baris header saja).
+/// Semua font menggunakan GoogleFonts.plusJakartaSans.
 class CatalogView extends StatefulWidget {
   const CatalogView({super.key, this.headerAction, this.userName});
 
@@ -300,9 +301,9 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: GoogleFonts.fraunces(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             color: const Color(0xFF2B2118),
           ),
         ),
@@ -322,7 +323,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// Promotion Banner cokelat dengan badge "Limited time.", "Get Special Offer", "Up to 50%", "Shop Now", gambar, & dots
+/// Promotion Banner warm saddle dengan badge "Limited time.", "Get Special Offer", "Up to 50%", "Shop Now", gambar Tarts, & dots
 class _SpecialOfferBanner extends StatelessWidget {
   const _SpecialOfferBanner();
 
@@ -334,14 +335,14 @@ class _SpecialOfferBanner extends StatelessWidget {
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF5C341E), Color(0xFF4A2A17)],
+              colors: [Color(0xFF9E582D), Color(0xFF7E3D18)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x1F5C341E),
+                color: Color(0x2E9E582D),
                 blurRadius: 16,
                 offset: Offset(0, 6),
               ),
@@ -383,10 +384,10 @@ class _SpecialOfferBanner extends StatelessWidget {
                       'Get Special Offer',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.fraunces(
-                        fontSize: 20,
-                        height: 26 / 20,
-                        fontWeight: FontWeight.w700,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 19,
+                        height: 24 / 19,
+                        fontWeight: FontWeight.w800,
                         color: const Color(0xFFFFFFFF),
                       ),
                     ),
@@ -418,7 +419,7 @@ class _SpecialOfferBanner extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF5C341E),
+                          color: const Color(0xFF7E3D18),
                         ),
                       ),
                     ),
@@ -428,11 +429,11 @@ class _SpecialOfferBanner extends StatelessWidget {
 
               const SizedBox(width: 8),
 
-              // Gambar Produk Sisi Kanan (Croissant / Produk Kue)
+              // Gambar Produk Sisi Kanan (Tarts.png)
               Image.asset(
-                'assets/images/croissant.png',
-                width: 95,
-                height: 70,
+                'assets/images/Tarts.png',
+                width: 120,
+                height: 75,
                 fit: BoxFit.contain,
                 excludeFromSemantics: true,
               ),
@@ -450,7 +451,7 @@ class _SpecialOfferBanner extends StatelessWidget {
               width: 16,
               height: 6,
               decoration: BoxDecoration(
-                color: const Color(0xFF8C4A27),
+                color: const Color(0xFF9E582D),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -479,7 +480,7 @@ class _SpecialOfferBanner extends StatelessWidget {
   }
 }
 
-/// Daftar kategori horizontal dengan wadah lingkaran abu-abu lembut dan nama di bawahnya
+/// Daftar kategori horizontal dengan wadah segi-empat rounded abu-abu lembut dan nama di-center
 class _CategoriesHorizontalList extends StatelessWidget {
   const _CategoriesHorizontalList({
     required this.categories,
@@ -491,55 +492,84 @@ class _CategoriesHorizontalList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 96,
-      child: ListView.separated(
+    return Center(
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          final item = categories[index];
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Wadah Gambar Berbentuk Lingkaran Penuh Berlatar Abu-abu Lembut
-              Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3EFEA),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFE8E2D9),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: Image.asset(
-                  item.icon,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.cake_outlined,
-                    color: Color(0xFF8C4A27),
-                    size: 24,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              // Nama Kategori di Bagian Bawah Setiap Lingkaran
-              Text(
-                item.name,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF2B2118),
-                ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (int i = 0; i < categories.length; i++) ...[
+              if (i > 0) const SizedBox(width: 16),
+              _CategoryItem(item: categories[i]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryItem extends StatelessWidget {
+  const _CategoryItem({required this.item});
+
+  final ({String name, String icon}) item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Wadah Gambar Berbentuk Segi-Empat Rounded Edge Berlatar Abu-abu Lembut
+        Container(
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3EFEA),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFE8E2D9),
+              width: 1.2,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
               ),
             ],
-          );
-        },
-      ),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Image.asset(
+            item.icon,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => const Icon(
+              Icons.cake_outlined,
+              color: Color(0xFF8C4A27),
+              size: 26,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        // Nama Kategori di Bagian Bawah yang Di-Center
+        SizedBox(
+          width: 64,
+          child: Text(
+            item.name,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF2B2118),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

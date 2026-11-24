@@ -33,10 +33,10 @@ class _HomePageState extends State<HomePage> {
           ),
           title: Text(
             'Keluar dari akun?',
-            style: GoogleFonts.fraunces(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               height: 28 / 20,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: const Color(0xFF2B2118),
             ),
           ),
@@ -221,10 +221,10 @@ class _PlaceholderTab extends StatelessWidget {
                 Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.fraunces(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 20,
                     height: 28 / 20,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: const Color(0xFF2B2118),
                   ),
                 ),
@@ -283,10 +283,10 @@ class _ProfileTab extends StatelessWidget {
               children: [
                 Text(
                   'Profil',
-                  style: GoogleFonts.fraunces(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 24,
                     height: 32 / 24,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: const Color(0xFF2B2118),
                   ),
                 ),
