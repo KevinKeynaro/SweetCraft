@@ -384,11 +384,10 @@ class _SpecialOfferBanner extends StatelessWidget {
                     // Judul Utama "Get Special Offer"
                     Text(
                       'Get Special Offer',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 19,
-                        height: 24 / 19,
+                        fontSize: 18,
+                        height: 22 / 18,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFFFFFFFF),
                       ),
@@ -434,14 +433,14 @@ class _SpecialOfferBanner extends StatelessWidget {
               // Gambar Produk Sisi Kanan (Tarts.png) yang diperbesar
               Image.asset(
                 'assets/images/Tarts.png',
-                width: 140,
-                height: 88,
+                width: 155,
+                height: 98,
                 fit: BoxFit.contain,
                 excludeFromSemantics: true,
                 errorBuilder: (context, error, stackTrace) => Image.asset(
                   'assets/images/croissant.png',
-                  width: 140,
-                  height: 88,
+                  width: 155,
+                  height: 98,
                   fit: BoxFit.contain,
                   excludeFromSemantics: true,
                 ),
@@ -525,24 +524,23 @@ class _CategoriesHorizontalList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Memberikan gap kiri dan kanan yang kecil dan elegan (18dp), tidak mepet dan tidak memenuhi layar
-    final sideGap = horizontalPadding > 18.0 ? horizontalPadding : 18.0;
-
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: sideGap),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (int i = 0; i < categories.length; i++)
+              for (int i = 0; i < categories.length; i++) ...[
+                if (i > 0) const SizedBox(width: 10),
                 _CategoryItem(
                   item: categories[i],
                   backgroundColor: _categoryStyles[i % _categoryStyles.length].bg,
                   borderColor: _categoryStyles[i % _categoryStyles.length].border,
                 ),
+              ],
             ],
           ),
         ),
@@ -570,8 +568,8 @@ class _CategoryItem extends StatelessWidget {
       children: [
         // Wadah Gambar Berbentuk Segi-Empat Rounded Edge yang Diperbesar
         Container(
-          width: 74,
-          height: 74,
+          width: 78,
+          height: 78,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: backgroundColor,
@@ -588,23 +586,23 @@ class _CategoryItem extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(8),
           child: Image.asset(
             item.icon,
-            width: 44,
-            height: 44,
+            width: 50,
+            height: 50,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) => const Icon(
               Icons.cake_outlined,
               color: Color(0xFF8C4A27),
-              size: 32,
+              size: 34,
             ),
           ),
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 6),
         // Nama Kategori di Bagian Bawah yang Di-Center
         SizedBox(
-          width: 74,
+          width: 78,
           child: Text(
             item.name,
             textAlign: TextAlign.center,
