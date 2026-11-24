@@ -436,6 +436,13 @@ class _SpecialOfferBanner extends StatelessWidget {
                 height: 75,
                 fit: BoxFit.contain,
                 excludeFromSemantics: true,
+                errorBuilder: (context, error, stackTrace) => Image.asset(
+                  'assets/images/croissant.png',
+                  width: 120,
+                  height: 75,
+                  fit: BoxFit.contain,
+                  excludeFromSemantics: true,
+                ),
               ),
             ],
           ),
@@ -492,19 +499,22 @@ class _CategoriesHorizontalList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (int i = 0; i < categories.length; i++) ...[
-              if (i > 0) const SizedBox(width: 16),
-              _CategoryItem(item: categories[i]),
+    return SizedBox(
+      height: 96,
+      child: Center(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (int i = 0; i < categories.length; i++) ...[
+                if (i > 0) const SizedBox(width: 16),
+                _CategoryItem(item: categories[i]),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

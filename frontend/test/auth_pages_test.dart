@@ -4,6 +4,8 @@ import 'package:frontend/main.dart';
 import 'package:frontend/pages/home_page.dart';
 import 'package:frontend/pages/login_page.dart';
 import 'package:frontend/pages/register_page.dart';
+import 'package:frontend/widgets/app_bottom_nav.dart';
+import 'package:frontend/widgets/catalog_view.dart';
 
 Widget _wrap(Widget screen, {double textScale = 1}) {
   return MaterialApp(
@@ -90,6 +92,14 @@ void main() {
     expect(find.text('Categories'), findsOneWidget);
     expect(find.text('Featured Products'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
+
+    // Verifikasi tinggi bottom nav tepat 64dp dan CatalogView memiliki ruang penuh
+    final bottomNav = find.byType(AppBottomNav);
+    expect(bottomNav, findsOneWidget);
+    expect(tester.getSize(bottomNav).height, equals(64));
+    final catalogView = find.byType(CatalogView);
+    expect(catalogView, findsOneWidget);
+    expect(tester.getSize(catalogView).height, greaterThan(400));
   });
 
   testWidgets('dengan sesi pembeli menampilkan tab pembeli 5 menu statis', (

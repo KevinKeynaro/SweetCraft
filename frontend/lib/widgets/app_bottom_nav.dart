@@ -28,6 +28,7 @@ class AppBottomNav extends StatelessWidget {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
     return Container(
+      height: 64 + bottomPadding,
       decoration: const BoxDecoration(
         color: Color(0xFFFFFFFF),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
