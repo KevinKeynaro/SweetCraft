@@ -570,25 +570,24 @@ class _CategoryItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Wadah Persegi Empat (1:1 Aspect Ratio) dengan Warna Pastel Serasi
-        AspectRatio(
-          aspectRatio: 1.0,
-          child: Container(
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: borderColor,
-                width: 1.2,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x08000000),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
+        // Wadah Persegi Empat Berukuran Lebih Kecil (48x48) dengan Warna Pastel Serasi
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(
+              color: borderColor,
+              width: 1.2,
             ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x08000000),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 6),
