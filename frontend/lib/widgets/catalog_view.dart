@@ -7,8 +7,8 @@ import '../services/api.dart';
 /// 1. Header Container cokelat tua dengan label "Location", pin lokasi, dan dropdown.
 /// 2. Search bar full-width berlatar putih dengan placeholder "Search".
 /// 3. Section "Special Offer" & promotion banner warm saddle dengan tart image yang diperbesar.
-/// 4. Section "Categories" dengan 4 kategori ber-background warna pastel cocok, ikon diperbesar,
-///    dan penataan terpusat dengan gap samping elegan.
+/// 4. Section "Categories" dengan 5 kategori (Cake, Cup Cake, Cookies, Donuts, Breads)
+///    berlatar warna pastel serasi, tanpa icon, dan pas di dalam margin banner.
 /// 5. Section "Products" (Header Saja).
 /// Judul section menggunakan font sans-serif bold (GoogleFonts.plusJakartaSans).
 class CatalogView extends StatefulWidget {
@@ -27,6 +27,7 @@ class _CatalogViewState extends State<CatalogView> {
   final _searchController = TextEditingController();
 
   static const _fallbackCategories = [
+    (name: 'Cake', icon: 'assets/images/cupcake-icon.png'),
     (name: 'Cup Cake', icon: 'assets/images/cupcake-icon.png'),
     (name: 'Cookies', icon: 'assets/images/cupcake.png'),
     (name: 'Donuts', icon: 'assets/images/sour-dough.png'),
@@ -91,7 +92,7 @@ class _CatalogViewState extends State<CatalogView> {
                 return (name: name, icon: _iconForCategory(name));
               }).toList()
             : _fallbackCategories)
-        .take(4)
+        .take(5)
         .toList();
 
     return SafeArea(
@@ -488,8 +489,8 @@ class _SpecialOfferBanner extends StatelessWidget {
   }
 }
 
-/// Daftar 4 kategori dengan latar warna pastel yang serasi, ikon & kotak diperbesar,
-/// serta margin samping kecil yang elegan dan terpusat.
+/// Daftar 5 kategori berlatar warna pastel yang serasi, tanpa icon,
+/// dan berukuran proporsional agar muat di dalam margin promotion banner.
 class _CategoriesHorizontalList extends StatelessWidget {
   const _CategoriesHorizontalList({
     required this.categories,
@@ -500,22 +501,27 @@ class _CategoriesHorizontalList extends StatelessWidget {
   final double horizontalPadding;
 
   static const _categoryStyles = [
-    // 1. Cup Cake: soft blush strawberry cream
+    // 1. Cake: soft warm rose / strawberry cream
+    (
+      bg: Color(0xFFFDF0ED),
+      border: Color(0xFFF7DDD6),
+    ),
+    // 2. Cup Cake: soft warm peach blush
     (
       bg: Color(0xFFFDEEE8),
       border: Color(0xFFF7D8CE),
     ),
-    // 2. Cookies: warm golden butter / biscuit
+    // 3. Cookies: warm golden butter / biscuit
     (
       bg: Color(0xFFFBF1DE),
       border: Color(0xFFF5E0BD),
     ),
-    // 3. Donuts: warm glazed latte / cocoa cream
+    // 4. Donuts: warm glazed latte / cocoa cream
     (
       bg: Color(0xFFF6ECE1),
       border: Color(0xFFEADBCE),
     ),
-    // 4. Breads: soft rustic wheat / sage meadow
+    // 5. Breads: soft rustic wheat / sage meadow
     (
       bg: Color(0xFFEFF5EB),
       border: Color(0xFFDEE9D7),
@@ -526,24 +532,21 @@ class _CategoriesHorizontalList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-      child: Center(
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (int i = 0; i < categories.length; i++) ...[
-                if (i > 0) const SizedBox(width: 10),
-                _CategoryItem(
-                  item: categories[i],
-                  backgroundColor: _categoryStyles[i % _categoryStyles.length].bg,
-                  borderColor: _categoryStyles[i % _categoryStyles.length].border,
-                ),
-              ],
-            ],
-          ),
-        ),
+      child: Row(
+        children: [
+          for (int i = 0; i < categories.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(
+              child: _CategoryItem(
+                name: categories[i].name,
+                backgroundColor:
+                    _categoryStyles[i % _categoryStyles.length].bg,
+                borderColor:
+                    _categoryStyles[i % _categoryStyles.length].border,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -551,71 +554,47 @@ class _CategoriesHorizontalList extends StatelessWidget {
 
 class _CategoryItem extends StatelessWidget {
   const _CategoryItem({
-    required this.item,
+    required this.name,
     required this.backgroundColor,
     required this.borderColor,
   });
 
-  final ({String name, String icon}) item;
+  final String name;
   final Color backgroundColor;
   final Color borderColor;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Wadah Gambar Berbentuk Segi-Empat Rounded Edge yang Diperbesar
-        Container(
-          width: 78,
-          height: 78,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: borderColor,
-              width: 1.2,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0A000000),
-                blurRadius: 6,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(8),
-          child: Image.asset(
-            item.icon,
-            width: 50,
-            height: 50,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => const Icon(
-              Icons.cake_outlined,
-              color: Color(0xFF8C4A27),
-              size: 34,
-            ),
-          ),
+    return Container(
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: borderColor,
+          width: 1.2,
         ),
-        const SizedBox(height: 6),
-        // Nama Kategori di Bagian Bawah yang Di-Center
-        SizedBox(
-          width: 78,
-          child: Text(
-            item.name,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF2B2118),
-            ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 4,
+            offset: Offset(0, 2),
           ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: Text(
+        name,
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF2B2118),
         ),
-      ],
+      ),
     );
   }
 }
