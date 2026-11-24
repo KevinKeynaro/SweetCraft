@@ -533,6 +533,7 @@ class _CategoriesHorizontalList extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (int i = 0; i < categories.length; i++) ...[
             if (i > 0) const SizedBox(width: 8),
@@ -565,36 +566,45 @@ class _CategoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: borderColor,
-          width: 1.2,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 4,
-            offset: Offset(0, 2),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Wadah Persegi Empat (1:1 Aspect Ratio) dengan Warna Pastel Serasi
+        AspectRatio(
+          aspectRatio: 1.0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: borderColor,
+                width: 1.2,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x08000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Text(
-        name,
-        textAlign: TextAlign.center,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w700,
-          color: const Color(0xFF2B2118),
         ),
-      ),
+        const SizedBox(height: 6),
+        // Nama Kategori di Bagian Bawah
+        Text(
+          name,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF2B2118),
+          ),
+        ),
+      ],
     );
   }
 }
