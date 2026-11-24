@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../widgets/app_bottom_nav.dart';
 import '../widgets/catalog_view.dart';
 import 'login_page.dart';
 
@@ -12,22 +13,13 @@ class CatalogPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFDFBF7),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFDFBF7),
-        foregroundColor: const Color(0xFF2B2118),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Text(
-          'SweetCraft',
-          style: GoogleFonts.fraunces(
-            fontSize: 20,
-            height: 28 / 20,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF2B2118),
+      body: CatalogView(
+        headerAction: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFAF7F2),
+            borderRadius: BorderRadius.circular(20),
           ),
-        ),
-        actions: [
-          TextButton(
+          child: TextButton(
             onPressed: () {
               Navigator.push(
                 context,
@@ -36,17 +28,28 @@ class CatalogPage extends StatelessWidget {
             },
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF8C4A27),
+              minimumSize: const Size(60, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               textStyle: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
             ),
             child: const Text('Masuk'),
           ),
-          const SizedBox(width: 8),
-        ],
+        ),
       ),
-      body: const CatalogView(),
+      bottomNavigationBar: AppBottomNav(
+        selectedIndex: 0,
+        onItemSelected: (index) {
+          if (index != 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          }
+        },
+      ),
     );
   }
 }

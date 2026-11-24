@@ -76,23 +76,35 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('tanpa sesi menampilkan katalog publik', (tester) async {
+  testWidgets('tanpa sesi menampilkan katalog publik sesuai referensi', (
+    tester,
+  ) async {
     await tester.pumpWidget(const SweetCraftApp());
     await tester.pump(const Duration(seconds: 16));
 
-    expect(find.text('SweetCraft'), findsOneWidget);
+    expect(find.text('Location'), findsOneWidget);
     expect(find.text('Masuk'), findsOneWidget);
+    expect(find.text('Search'), findsWidgets);
+    expect(find.text('Special Offers'), findsOneWidget);
+    expect(find.text('Get Special Offer'), findsOneWidget);
+    expect(find.text('Categories'), findsOneWidget);
+    expect(find.text('Featured Products'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
   });
 
-  testWidgets('dengan sesi pembeli menampilkan tab pembeli', (tester) async {
+  testWidgets('dengan sesi pembeli menampilkan tab pembeli 5 menu statis', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       SweetCraftApp(session: (name: 'Siti', role: 'pembeli')),
     );
     await tester.pump(const Duration(seconds: 16));
 
-    expect(find.text('Katalog'), findsWidgets);
-    expect(find.text('Pesanan'), findsOneWidget);
-    expect(find.text('Profil'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Search'), findsWidgets);
+    expect(find.text('Shop'), findsOneWidget);
+    expect(find.text('Cart'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
   });
 
   testWidgets('login menampilkan error saat field kosong', (tester) async {

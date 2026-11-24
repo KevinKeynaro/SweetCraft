@@ -2,22 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/api.dart';
-import 'app_button.dart';
-import 'product_card.dart';
 
+/// Halaman Home / Katalog SweetCraft yang mengacu pada gambar referensi:
+/// 1. Header Container cokelat tua dengan label "Location", pin lokasi, dan dropdown.
+/// 2. Search bar full-width berlatar putih dengan placeholder "Search".
+/// 3. Section "Special Offers" & promotion banner cokelat dengan badge "Limited time.",
+///    "Get Special Offer", "Up to 50%", tombol "Shop Now", gambar produk, dan pagination dots.
+/// 4. Section "Categories" dengan circular container abu-abu lembut dan nama kategori di bawahnya.
+/// 5. Section "Featured Products" (hanya baris header saja).
 class CatalogView extends StatefulWidget {
-  const CatalogView({super.key});
+  const CatalogView({super.key, this.headerAction, this.userName});
+
+  final Widget? headerAction;
+  final String? userName;
 
   @override
   State<CatalogView> createState() => _CatalogViewState();
 }
 
 class _CatalogViewState extends State<CatalogView> {
-  List<Map<String, dynamic>> _cakes = [];
   List<Map<String, dynamic>> _categories = [];
-  int? _selectedCategoryId;
   bool _loading = true;
-  String? _error;
+  final _searchController = TextEditingController();
+
+  static const _fallbackCategories = [
+    (name: 'Cup Cake', icon: 'assets/images/cupcake-icon.png'),
+    (name: 'Cookies', icon: 'assets/images/cupcake.png'),
+    (name: 'Donuts', icon: 'assets/images/sour-dough.png'),
+    (name: 'Breads', icon: 'assets/images/artisan-bread-icon.png'),
+    (name: 'Pastry', icon: 'assets/images/croissant.png'),
+  ];
 
   @override
   void initState() {
@@ -25,22 +39,17 @@ class _CatalogViewState extends State<CatalogView> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
+  Future<void> _load() async {
+    setState(() => _loading = true);
     try {
-      final results = await Future.wait<dynamic>([
-        ApiService.get('/cakes'),
-        ApiService.get('/categories'),
-      ]);
-      final cakesPayload = results[0] as Map<String, dynamic>;
-      final categoriesPayload = results[1] as Map<String, dynamic>;
-      final cakes =
-          (cakesPayload['cakes'] as List?)?.cast<Map<String, dynamic>>() ??
-          <Map<String, dynamic>>[];
+      final results = await ApiService.get('/categories');
+      final categoriesPayload = results as Map<String, dynamic>;
       final categories =
           (categoriesPayload['categories'] as List?)
               ?.cast<Map<String, dynamic>>() ??
@@ -48,43 +57,40 @@ class _CatalogViewState extends State<CatalogView> {
 
       if (!mounted) return;
       setState(() {
-        _cakes = cakes;
         _categories = categories;
-        _loading = false;
-      });
-    } on ApiException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _error = error.message;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Koneksi terputus. Periksa internet lalu coba lagi.';
-        _loading = false;
-      });
+      setState(() => _loading = false);
     }
   }
 
-  List<Map<String, dynamic>> get _filteredCakes {
-    if (_selectedCategoryId == null) return _cakes;
-    return _cakes
-        .where((cake) => cake['category_id'] == _selectedCategoryId)
-        .toList();
+  String _iconForCategory(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('bread') || lower.contains('roti')) {
+      return 'assets/images/artisan-bread-icon.png';
+    }
+    if (lower.contains('pastry') || lower.contains('croissant')) {
+      return 'assets/images/croissant.png';
+    }
+    if (lower.contains('donut') || lower.contains('sourdough')) {
+      return 'assets/images/sour-dough.png';
+    }
+    return 'assets/images/cupcake-icon.png';
   }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final outerPadding = width > 720 ? (width - 720) / 2 : 16.0;
-    final contentWidth = width - outerPadding * 2;
-    final columns = contentWidth < 360 ? 1 : (contentWidth < 600 ? 2 : 3);
-    const spacing = 12.0;
-    final cardWidth = (contentWidth - spacing * (columns - 1)) / columns;
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final mainAxisExtent = cardWidth * 3 / 4 + 24 + 110 * textScale;
-    final filteredCakes = _filteredCakes;
+    final horizontalPadding = width > 720 ? (width - 720) / 2 : 20.0;
+
+    final categoriesToDisplay = _categories.isNotEmpty
+        ? _categories.map((c) {
+            final name = c['name'] as String? ?? 'Kue';
+            return (name: name, icon: _iconForCategory(name));
+          }).toList()
+        : _fallbackCategories;
 
     return SafeArea(
       bottom: false,
@@ -92,253 +98,447 @@ class _CatalogViewState extends State<CatalogView> {
         onRefresh: _load,
         color: const Color(0xFF8C4A27),
         backgroundColor: const Color(0xFFFFFFFF),
-        child: CustomScrollView(
+        child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(child: _Header(padding: outerPadding)),
-            if (!_loading && _error == null && _categories.isNotEmpty)
-              SliverToBoxAdapter(
-                child: _CategoryFilters(
-                  categories: _categories,
-                  selectedCategoryId: _selectedCategoryId,
-                  padding: outerPadding,
-                  onSelected: (categoryId) {
-                    setState(() => _selectedCategoryId = categoryId);
-                  },
-                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. Header Container & Location & Search Bar
+              _HeaderSection(
+                horizontalPadding: horizontalPadding,
+                action: widget.headerAction,
+                searchController: _searchController,
               ),
-            if (_loading)
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(outerPadding, 8, outerPadding, 24),
-                sliver: SliverGrid.builder(
-                  itemCount: 6,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    mainAxisSpacing: spacing,
-                    crossAxisSpacing: spacing,
-                    mainAxisExtent: mainAxisExtent,
-                  ),
-                  itemBuilder: (context, index) => const _SkeletonCard(),
-                ),
-              )
-            else if (_error != null)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _CatalogMessage(
-                  icon: Icons.cloud_off_outlined,
-                  title: 'Koneksi terputus',
-                  description: _error!,
-                  actionLabel: 'Coba lagi',
-                  onAction: _load,
-                ),
-              )
-            else if (filteredCakes.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _CatalogMessage(
-                  icon: Icons.cake_outlined,
-                  title: 'Belum ada menu',
-                  description: _selectedCategoryId == null
-                      ? 'Coba lagi nanti.'
-                      : 'Belum ada menu untuk kategori ini.',
-                  actionLabel: 'Muat ulang',
-                  onAction: _load,
-                ),
-              )
-            else
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(outerPadding, 8, outerPadding, 24),
-                sliver: SliverGrid.builder(
-                  itemCount: filteredCakes.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    mainAxisSpacing: spacing,
-                    crossAxisSpacing: spacing,
-                    mainAxisExtent: mainAxisExtent,
-                  ),
-                  itemBuilder: (context, index) {
-                    return ProductCard(cake: filteredCakes[index]);
-                  },
-                ),
+
+              const SizedBox(height: 24),
+
+              // 2. Section "Special Offers" & Promotion Banner
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: const _SectionHeader(title: 'Special Offers'),
               ),
-          ],
+              const SizedBox(height: 12),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: const _SpecialOfferBanner(),
+              ),
+
+              const SizedBox(height: 24),
+
+              // 3. Section "Categories"
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: const _SectionHeader(title: 'Categories'),
+              ),
+              const SizedBox(height: 14),
+              _CategoriesHorizontalList(
+                categories: categoriesToDisplay,
+                horizontalPadding: horizontalPadding,
+              ),
+
+              const SizedBox(height: 28),
+
+              // 4. Section "Featured Products" (Header Saja)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: const _SectionHeader(title: 'Featured Products'),
+              ),
+
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.padding});
-
-  final double padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(padding, 24, padding, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Katalog',
-            style: GoogleFonts.fraunces(
-              fontSize: 24,
-              height: 32 / 24,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF2B2118),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Kue rumahan untuk setiap momen.',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              height: 22 / 14,
-              color: const Color(0xFF6E5D4F),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoryFilters extends StatelessWidget {
-  const _CategoryFilters({
-    required this.categories,
-    required this.selectedCategoryId,
-    required this.padding,
-    required this.onSelected,
+/// Header Container cokelat tua dengan Location dan Search bar full-width
+class _HeaderSection extends StatelessWidget {
+  const _HeaderSection({
+    required this.horizontalPadding,
+    this.action,
+    required this.searchController,
   });
 
-  final List<Map<String, dynamic>> categories;
-  final int? selectedCategoryId;
-  final double padding;
-  final ValueChanged<int?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: padding),
-        children: [
-          _CategoryChip(
-            label: 'Semua',
-            selected: selectedCategoryId == null,
-            onSelected: () => onSelected(null),
-          ),
-          for (final category in categories)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: _CategoryChip(
-                label: category['name'] as String? ?? '',
-                selected: selectedCategoryId == category['id'],
-                onSelected: () => onSelected(category['id'] as int?),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({
-    required this.label,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onSelected(),
-      showCheckmark: false,
-      backgroundColor: const Color(0xFFF5EFE6),
-      selectedColor: const Color(0xFF8C4A27),
-      side: BorderSide.none,
-      shape: const StadiumBorder(),
-      labelStyle: GoogleFonts.plusJakartaSans(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: selected ? const Color(0xFFFFFFFF) : const Color(0xFF6E5D4F),
-      ),
-    );
-  }
-}
-
-class _CatalogMessage extends StatelessWidget {
-  const _CatalogMessage({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.actionLabel,
-    required this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-  final String actionLabel;
-  final VoidCallback onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 48, color: const Color(0xFF8C4A27)),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.fraunces(
-                fontSize: 20,
-                height: 28 / 20,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF2B2118),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                height: 22 / 14,
-                color: const Color(0xFF6E5D4F),
-              ),
-            ),
-            const SizedBox(height: 16),
-            AppButton(label: actionLabel, outlined: true, onPressed: onAction),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SkeletonCard extends StatelessWidget {
-  const _SkeletonCard();
+  final double horizontalPadding;
+  final Widget? action;
+  final TextEditingController searchController;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5EFE6),
-        borderRadius: BorderRadius.circular(16),
+      decoration: const BoxDecoration(
+        color: Color(0xFF8C4A27),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x1F2B2118),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Baris Location (Kiri Atas)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Location',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFE6DDD0),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: Color(0xFFFDFBF7),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Jakarta, Indonesia',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFFDFBF7),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 18,
+                        color: Color(0xFFFDFBF7),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // Aksi opsional (misal tombol Masuk untuk tamu)
+              if (action != null) action!,
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
+          // Search Bar Full-Width (Putih, Rounded, Placeholder "Search")
+          Container(
+            height: 48,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: searchController,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: const Color(0xFF2B2118),
+              ),
+              cursorColor: const Color(0xFF8C4A27),
+              decoration: InputDecoration(
+                hintText: 'Search',
+                hintStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: const Color(0xFFA79A8C),
+                ),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  size: 22,
+                  color: Color(0xFF6E5D4F),
+                ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 44,
+                  minHeight: 48,
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Header baris dengan judul di kiri dan teks "See All" cokelat di kanan
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, this.onSeeAll});
+
+  final String title;
+  final VoidCallback? onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.fraunces(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF2B2118),
+          ),
+        ),
+        InkWell(
+          onTap: onSeeAll,
+          child: Text(
+            'See All',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF8C4A27),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Promotion Banner cokelat dengan badge "Limited time.", "Get Special Offer", "Up to 50%", "Shop Now", gambar, & dots
+class _SpecialOfferBanner extends StatelessWidget {
+  const _SpecialOfferBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF5C341E), Color(0xFF4A2A17)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1F5C341E),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Kolom Konten Teks
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Badge "Limited time."
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x2EFFFFFF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Limited time.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFFAF7F2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Judul Utama "Get Special Offer"
+                    Text(
+                      'Get Special Offer',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.fraunces(
+                        fontSize: 20,
+                        height: 26 / 20,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFFFFFFF),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+
+                    // Subteks "Up to 50%"
+                    Text(
+                      'Up to 50%',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFE6DDD0),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Tombol CTA "Shop Now"
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAF7F2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Shop Now',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF5C341E),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              // Gambar Produk Sisi Kanan (Croissant / Produk Kue)
+              Image.asset(
+                'assets/images/croissant.png',
+                width: 95,
+                height: 70,
+                fit: BoxFit.contain,
+                excludeFromSemantics: true,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        // Indikator Titik (Pagination Dots) di Bawah Banner
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 16,
+              height: 6,
+              decoration: BoxDecoration(
+                color: const Color(0xFF8C4A27),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(width: 5),
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD9D0C5),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD9D0C5),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Daftar kategori horizontal dengan wadah lingkaran abu-abu lembut dan nama di bawahnya
+class _CategoriesHorizontalList extends StatelessWidget {
+  const _CategoriesHorizontalList({
+    required this.categories,
+    required this.horizontalPadding,
+  });
+
+  final List<({String name, String icon})> categories;
+  final double horizontalPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final item = categories[index];
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Wadah Gambar Berbentuk Lingkaran Penuh Berlatar Abu-abu Lembut
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3EFEA),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFFE8E2D9),
+                    width: 1,
+                  ),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: Image.asset(
+                  item.icon,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.cake_outlined,
+                    color: Color(0xFF8C4A27),
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Nama Kategori di Bagian Bawah Setiap Lingkaran
+              Text(
+                item.name,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF2B2118),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

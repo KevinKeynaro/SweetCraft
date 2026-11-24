@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Kartu produk kue SweetCraft dengan estetika artisanal bakery.
+///
+/// Menampilkan foto kue, badge status stok, kategori, nama kue,
+/// harga terformat Rupiah, dan tombol aksi cepat.
 class ProductCard extends StatelessWidget {
-  const ProductCard({super.key, required this.cake});
+  const ProductCard({super.key, required this.cake, this.onTap});
 
   final Map<String, dynamic> cake;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +25,18 @@ class ProductCard extends StatelessWidget {
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE6DDD0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A2B2118),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 1. Gambar Kue & Badge Stok
           AspectRatio(
             aspectRatio: 4 / 3,
             child: Stack(
@@ -34,6 +47,8 @@ class ProductCard extends StatelessWidget {
               ],
             ),
           ),
+
+          // 2. Konten Kartu (Kategori, Nama, Harga & Aksi)
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -44,39 +59,76 @@ class ProductCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (category.isNotEmpty) ...[
+                        Text(
+                          category,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            height: 14 / 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                            color: const Color(0xFF9C8370),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
                       Text(
                         name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          height: 24 / 16,
+                          fontSize: 14,
+                          height: 20 / 14,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF2B2118),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        category,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          height: 22 / 14,
-                          color: const Color(0xFF6E5D4F),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          formatRupiah(cake['price']),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            height: 20 / 15,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF8C4A27),
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: isOutOfStock
+                              ? const Color(0xFFEFE9E1)
+                              : const Color(0xFFFAF7F2),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isOutOfStock
+                                ? const Color(0xFFE6DDD0)
+                                : const Color(0xFF8C4A27),
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 16,
+                          color: isOutOfStock
+                              ? const Color(0xFFA79A8C)
+                              : const Color(0xFF8C4A27),
                         ),
                       ),
                     ],
-                  ),
-                  Text(
-                    formatRupiah(cake['price']),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 18,
-                      height: 24 / 18,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF2B2118),
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
                   ),
                 ],
               ),
@@ -86,7 +138,11 @@ class ProductCard extends StatelessWidget {
       ),
     );
 
-    return isOutOfStock ? Opacity(opacity: 0.6, child: card) : card;
+    return InkWell(
+      onTap: isOutOfStock ? null : onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: isOutOfStock ? Opacity(opacity: 0.55, child: card) : card,
+    );
   }
 }
 
@@ -106,7 +162,19 @@ class _CakeImage extends StatelessWidget {
       fit: BoxFit.cover,
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;
-        return const ColoredBox(color: Color(0xFFF5EFE6));
+        return const ColoredBox(
+          color: Color(0xFFFAF7F2),
+          child: Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFF8C4A27),
+              ),
+            ),
+          ),
+        );
       },
       errorBuilder: (context, error, stackTrace) {
         return const _ImagePlaceholder();
@@ -120,10 +188,10 @@ class _ImagePlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: Color(0xFFF5EFE6),
-      child: Center(
-        child: Icon(Icons.cake_outlined, size: 40, color: Color(0xFFA79A8C)),
+    return Container(
+      color: const Color(0xFFFAF7F2),
+      child: const Center(
+        child: Icon(Icons.cake_outlined, size: 36, color: Color(0xFF9C8370)),
       ),
     );
   }
@@ -145,12 +213,19 @@ class _StockBadge extends StatelessWidget {
         decoration: BoxDecoration(
           color: _stockBackground(stock),
           borderRadius: BorderRadius.circular(999),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            ),
+          ],
         ),
         child: Text(
           label,
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 12,
-            height: 16 / 12,
+            fontSize: 11,
+            height: 14 / 11,
             fontWeight: FontWeight.w600,
             color: _stockForeground(stock),
           ),

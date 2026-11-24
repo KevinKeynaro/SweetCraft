@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/api.dart';
+import '../widgets/app_bottom_nav.dart';
 import '../widgets/app_button.dart';
 import '../widgets/catalog_view.dart';
 import 'catalog_page.dart';
@@ -107,13 +108,21 @@ class _HomePageState extends State<HomePage> {
             ),
           ]
         : <Widget>[
-            const CatalogView(),
-            _PlaceholderTab(
-              icon: Icons.receipt_long_outlined,
-              title: 'Belum ada pesanan',
-              description: 'Yuk pilih kue di katalog.',
-              actionLabel: 'Lihat katalog',
-              onAction: () => setState(() => _index = 0),
+            CatalogView(userName: widget.name),
+            const _PlaceholderTab(
+              icon: Icons.search_rounded,
+              title: 'Search',
+              description: 'Cari kue favorit Anda.',
+            ),
+            const _PlaceholderTab(
+              icon: Icons.storefront_outlined,
+              title: 'Shop',
+              description: 'Jelajahi menu toko SweetCraft.',
+            ),
+            const _PlaceholderTab(
+              icon: Icons.shopping_bag_outlined,
+              title: 'Cart',
+              description: 'Keranjang belanja Anda masih kosong.',
             ),
             _ProfileTab(
               name: widget.name,
@@ -125,29 +134,24 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFDFBF7),
       body: IndexedStack(index: _index, children: tabs),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (index) => setState(() => _index = index),
-        backgroundColor: const Color(0xFFFFFFFF),
-        indicatorColor: const Color(0xFFF5EFE6),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          final selected = states.contains(WidgetState.selected);
-          return GoogleFonts.plusJakartaSans(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: selected ? const Color(0xFF8C4A27) : const Color(0xFF6E5D4F),
-          );
-        }),
-        overlayColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.pressed) ||
-              states.contains(WidgetState.hovered)) {
-            return const Color(0x1A8C4A27);
-          }
-          return null;
-        }),
-        destinations: _isSeller
-            ? const [
+      bottomNavigationBar: _isSeller
+          ? NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: (index) => setState(() => _index = index),
+              backgroundColor: const Color(0xFFFFFFFF),
+              indicatorColor: const Color(0xFFF5EFE6),
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                final selected = states.contains(WidgetState.selected);
+                return GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected
+                      ? const Color(0xFF8C4A27)
+                      : const Color(0xFF6E5D4F),
+                );
+              }),
+              destinations: const [
                 NavigationDestination(
                   icon: Icon(
                     Icons.restaurant_menu_outlined,
@@ -175,37 +179,12 @@ class _HomePageState extends State<HomePage> {
                   selectedIcon: Icon(Icons.person, color: Color(0xFF8C4A27)),
                   label: 'Profil',
                 ),
-              ]
-            : const [
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.storefront_outlined,
-                    color: Color(0xFF6E5D4F),
-                  ),
-                  selectedIcon: Icon(
-                    Icons.storefront,
-                    color: Color(0xFF8C4A27),
-                  ),
-                  label: 'Katalog',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.receipt_long_outlined,
-                    color: Color(0xFF6E5D4F),
-                  ),
-                  selectedIcon: Icon(
-                    Icons.receipt_long,
-                    color: Color(0xFF8C4A27),
-                  ),
-                  label: 'Pesanan',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline, color: Color(0xFF6E5D4F)),
-                  selectedIcon: Icon(Icons.person, color: Color(0xFF8C4A27)),
-                  label: 'Profil',
-                ),
               ],
-      ),
+            )
+          : AppBottomNav(
+              selectedIndex: _index,
+              onItemSelected: (index) => setState(() => _index = index),
+            ),
     );
   }
 }
