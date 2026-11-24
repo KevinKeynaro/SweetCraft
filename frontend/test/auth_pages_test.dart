@@ -87,10 +87,10 @@ void main() {
     expect(find.text('Location'), findsOneWidget);
     expect(find.text('Masuk'), findsOneWidget);
     expect(find.text('Search'), findsWidgets);
-    expect(find.text('Special Offers'), findsOneWidget);
+    expect(find.text('Special Offer'), findsOneWidget);
     expect(find.text('Get Special Offer'), findsOneWidget);
     expect(find.text('Categories'), findsOneWidget);
-    expect(find.text('Featured Products'), findsOneWidget);
+    expect(find.text('Products'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
 
     // Verifikasi tinggi bottom nav tepat 64dp dan CatalogView memiliki ruang penuh
