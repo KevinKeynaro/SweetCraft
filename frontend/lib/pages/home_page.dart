@@ -117,7 +117,7 @@ class _HomePageState extends State<HomePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.message),
-          backgroundColor: const Color(0xFFA63232),
+          backgroundColor: const Color(0xFF991B1B),
         ),
       );
     } catch (_) {
@@ -129,7 +129,7 @@ class _HomePageState extends State<HomePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Gagal memperbarui stok ke server.'),
-          backgroundColor: Color(0xFFA63232),
+          backgroundColor: Color(0xFF991B1B),
         ),
       );
     }
@@ -175,14 +175,14 @@ class _HomePageState extends State<HomePage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF3B2A1E),
+              color: const Color(0xFF2B2118),
             ),
           ),
           content: Text(
             'Apakah Anda yakin ingin menghapus "$cakeName" dari daftar menu toko?',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: const Color(0xFF736052),
+              color: const Color(0xFF6E5D4F),
             ),
           ),
           actions: [
@@ -190,7 +190,7 @@ class _HomePageState extends State<HomePage> {
               onPressed: () => Navigator.pop(dialogCtx, false),
               style: TextButton.styleFrom(
                 minimumSize: const Size(48, 44),
-                foregroundColor: const Color(0xFF736052),
+                foregroundColor: const Color(0xFF6E5D4F),
               ),
               child: const Text('Batal'),
             ),
@@ -198,8 +198,11 @@ class _HomePageState extends State<HomePage> {
               onPressed: () => Navigator.pop(dialogCtx, true),
               style: FilledButton.styleFrom(
                 minimumSize: const Size(84, 44),
-                backgroundColor: const Color(0xFFA63232),
+                backgroundColor: const Color(0xFF991B1B),
                 foregroundColor: const Color(0xFFFFFFFF),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text('Hapus'),
             ),
@@ -221,7 +224,7 @@ class _HomePageState extends State<HomePage> {
                 ? 'Produk tidak bisa dihapus karena sudah ada dalam pesanan.'
                 : e.message,
           ),
-          backgroundColor: const Color(0xFFA63232),
+          backgroundColor: const Color(0xFF991B1B),
         ),
       );
       return;
@@ -230,7 +233,7 @@ class _HomePageState extends State<HomePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Gagal menghapus produk: $e'),
-          backgroundColor: const Color(0xFFA63232),
+          backgroundColor: const Color(0xFF991B1B),
         ),
       );
       return;
@@ -243,7 +246,7 @@ class _HomePageState extends State<HomePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('"$cakeName" berhasil dihapus'),
-        backgroundColor: const Color(0xFF1E6B3A),
+        backgroundColor: const Color(0xFF166534),
       ),
     );
   }
@@ -361,7 +364,11 @@ class _HomePageState extends State<HomePage> {
                 });
               },
             ),
-            _SellerProfileTab(onLogout: _confirmLogout),
+            _ProfileTab(
+              name: widget.name,
+              role: widget.role,
+              onLogout: _confirmLogout,
+            ),
           ]
         : <Widget>[
             CatalogView(
@@ -399,182 +406,23 @@ class _HomePageState extends State<HomePage> {
           ];
 
     return Scaffold(
-      backgroundColor: _isSeller
-          ? const Color(0xFFF5F3EE) // const Color(0xFFFAF6EC)
-          : const Color(0xFFFDFBF7),
+      backgroundColor: const Color(0xFFFDFBF7),
       body: IndexedStack(index: _index, children: tabs),
-      bottomNavigationBar: _isSeller
-          ? _SellerBottomNav(
-              selectedIndex: _index,
-              onItemSelected: (index) => setState(() => _index = index),
-            )
-          : AppBottomNav(
-              selectedIndex: _index,
-              onItemSelected: (index) => setState(() => _index = index),
-            ),
-    );
-  }
-}
-
-class _SellerBottomNav extends StatelessWidget {
-  const _SellerBottomNav({
-    required this.selectedIndex,
-    required this.onItemSelected,
-  });
-
-  final int selectedIndex;
-  final ValueChanged<int> onItemSelected;
-
-  static const _items = [
-    (
-      icon: Icons.dashboard_outlined,
-      activeIcon: Icons.dashboard_rounded,
-      label: 'Beranda',
-    ),
-    (
-      icon: Icons.inventory_2_outlined,
-      activeIcon: Icons.inventory_2_rounded,
-      label: 'Produk',
-    ),
-    (
-      icon: Icons.add_circle_outline_rounded,
-      activeIcon: Icons.add_circle_rounded,
-      label: 'Tambah',
-    ),
-    (
-      icon: Icons.person_outline_rounded,
-      activeIcon: Icons.person_rounded,
-      label: 'Profil',
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.paddingOf(context).bottom;
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-        border: Border(top: BorderSide(color: Color(0xFFE8DFD1))),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x143B2A1E),
-            blurRadius: 16,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.fromLTRB(10, 10, 10, 10 + bottomPadding),
-      child: Row(
-        children: List.generate(_items.length, (i) {
-          final item = _items[i];
-          final selected = i == selectedIndex;
-
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Material(
-                color: selected
-                    ? const Color(0xFF5C341E)
-                    : const Color(0xFFF3ECE2),
-                borderRadius: BorderRadius.circular(18),
-                elevation: selected ? 2 : 0,
-                shadowColor: const Color(0x335C341E),
-                child: InkWell(
-                  onTap: () => onItemSelected(i),
-                  borderRadius: BorderRadius.circular(18),
-                  child: Container(
-                    height: 58,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          selected ? item.activeIcon : item.icon,
-                          size: 25,
-                          color: selected
-                              ? const Color(0xFFFFFFFF)
-                              : const Color(0xFF4A3525),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          item.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.5,
-                            fontWeight: selected
-                                ? FontWeight.w800
-                                : FontWeight.w700,
-                            color: selected
-                                ? const Color(0xFFFFFFFF)
-                                : const Color(0xFF4A3525),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
+      bottomNavigationBar: AppBottomNav(
+        selectedIndex: _index,
+        items: _isSeller ? _sellerNavItems : AppBottomNav.buyerNavItems,
+        onItemSelected: (index) => setState(() => _index = index),
       ),
     );
   }
 }
 
-class _SellerProfileTab extends StatelessWidget {
-  const _SellerProfileTab({required this.onLogout});
-
-  final Future<void> Function() onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 28, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Profil',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF3B2A1E),
-              ),
-            ),
-            const SizedBox(height: 24),
-            OutlinedButton.icon(
-              onPressed: () {
-                onLogout();
-              },
-              icon: const Icon(Icons.logout_rounded, size: 18),
-              label: const Text('Keluar'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                backgroundColor: const Color(0xFFFFFFFF),
-                foregroundColor: const Color(0xFFA63232),
-                side: const BorderSide(color: Color(0xFFA63232)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                textStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+const List<NavBarItem> _sellerNavItems = [
+  (icon: Icons.dashboard_outlined, label: 'Beranda'),
+  (icon: Icons.inventory_2_outlined, label: 'Produk'),
+  (icon: Icons.add_rounded, label: 'Tambah'),
+  (icon: Icons.person_outline_rounded, label: 'Profil'),
+];
 
 class _PlaceholderTab extends StatelessWidget {
   const _PlaceholderTab({

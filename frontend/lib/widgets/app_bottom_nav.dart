@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Bottom Navigation Bar statis bergaya artisanal bakery sesuai gambar referensi.
+typedef NavBarItem = ({IconData icon, String label});
+
+/// Bottom Navigation Bar statis bergaya artisanal bakery SweetCraft.
 ///
-/// Memiliki latar putih bersih dengan sudut atas melengkung, 5 menu (Home, Search, Pre-Order, Cart, Profile),
-/// dan indikator aktif berupa segi-empat cokelat dengan sudut membulat (rounded edge) yang menonjol ke atas di tab aktif.
+/// Memiliki latar putih bersih dengan sudut atas melengkung, mendukung daftar item
+/// pembeli maupun penjual, dan indikator aktif berupa segi-empat cokelat tua dengan sudut
+/// membulat (rounded edge) yang menonjol ke atas di tab aktif.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     super.key,
     required this.selectedIndex,
     required this.onItemSelected,
+    this.items = buyerNavItems,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
+  final List<NavBarItem> items;
 
-  static const _navItems = [
+  static const List<NavBarItem> buyerNavItems = [
     (icon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.search_rounded, label: 'Search'),
     (icon: Icons.add_rounded, label: 'Pre-Order'),
@@ -47,8 +52,8 @@ class AppBottomNav extends StatelessWidget {
           child: SizedBox(
             height: 64,
             child: Row(
-              children: List.generate(_navItems.length, (index) {
-                final item = _navItems[index];
+              children: List.generate(items.length, (index) {
+                final item = items[index];
                 final isSelected = index == selectedIndex;
 
                 return Expanded(

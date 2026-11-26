@@ -124,108 +124,91 @@ class _SellerMenuViewState extends State<SellerMenuView> {
     final categoryOptions = _buildCategoryOptions();
     final filtered = _filteredCakes();
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header dengan jarak atas nyaman
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Daftar Produk',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF3B2A1E),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3EBDD),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '${filtered.length} Menu',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF8B5A2B),
-                    ),
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SellerCurvedHeader(
+          title: 'Daftar Produk',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0x2EFFFFFF),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '${filtered.length} Menu',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFFAF7F2),
+              ),
+            ),
+          ),
+          bottomChild: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
-          ),
-
-          // Pencarian (>= 48dp touch target)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 48),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE8DFD1)),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _query = val),
+              cursorColor: const Color(0xFF8C4A27),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: const Color(0xFF2B2118),
               ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (val) => setState(() => _query = val),
-                style: GoogleFonts.plusJakartaSans(
+              decoration: InputDecoration(
+                hintText: 'Cari nama kue atau pastry...',
+                hintStyle: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: const Color(0xFF3B2A1E),
+                  color: const Color(0xFFA79A8C),
                 ),
-                decoration: InputDecoration(
-                  hintText: 'Cari nama kue atau pastry...',
-                  hintStyle: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    color: const Color(0xFFA79A8C),
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: Color(0xFF8B5A2B),
-                    size: 22,
-                  ),
-                  suffixIcon: _query.isNotEmpty
-                      ? IconButton(
-                          tooltip: 'Hapus pencarian',
-                          constraints: const BoxConstraints(
-                            minWidth: 48,
-                            minHeight: 48,
-                          ),
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            color: Color(0xFF736052),
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _query = '');
-                          },
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 13,
-                  ),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: Color(0xFF6E5D4F),
+                  size: 22,
+                ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 44,
+                  minHeight: 48,
+                ),
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        tooltip: 'Hapus pencarian',
+                        constraints: const BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Color(0xFF6E5D4F),
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
                 ),
               ),
             ),
           ),
+        ),
 
-          const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
           // Filter Kategori (memakai Wrap agar tidak ada scroll horizontal)
           Padding(
@@ -247,7 +230,7 @@ class _SellerMenuViewState extends State<SellerMenuView> {
                         : 'Stok Habis ×',
                     selected: true,
                     accentOverride: _stockFilter == 'empty'
-                        ? const Color(0xFFA63232)
+                        ? const Color(0xFF991B1B)
                         : const Color(0xFFB45309),
                     onTap: () => setState(() => _stockFilter = 'all'),
                   ),
@@ -261,13 +244,12 @@ class _SellerMenuViewState extends State<SellerMenuView> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: widget.onRefresh,
-              color: const Color(0xFF8B5A2B),
+              color: const Color(0xFF8C4A27),
               backgroundColor: const Color(0xFFFFFFFF),
               child: _buildListBody(context, filtered),
             ),
           ),
         ],
-      ),
     );
   }
 
@@ -370,7 +352,7 @@ class _FilterChipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeBg = accentOverride ?? const Color(0xFF8B5A2B);
+    final activeBg = accentOverride ?? const Color(0xFF5C341E);
 
     return Material(
       color: selected ? activeBg : const Color(0xFFFFFFFF),
@@ -379,12 +361,12 @@ class _FilterChipButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 44),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          constraints: const BoxConstraints(minHeight: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? activeBg : const Color(0xFFE8DFD1),
+              color: selected ? activeBg : const Color(0xFFE6DDD0),
             ),
           ),
           child: Text(
@@ -394,7 +376,7 @@ class _FilterChipButton extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: selected
                   ? const Color(0xFFFFFFFF)
-                  : const Color(0xFF3B2A1E),
+                  : const Color(0xFF2B2118),
             ),
           ),
         ),

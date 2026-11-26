@@ -24,7 +24,7 @@ void showImageSourcePickerSheet(
     context: context,
     backgroundColor: const Color(0xFFFFFFFF),
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (ctx) {
       return SafeArea(
@@ -38,7 +38,7 @@ void showImageSourcePickerSheet(
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF3B2A1E),
+                  color: const Color(0xFF2B2118),
                 ),
               ),
               const SizedBox(height: 10),
@@ -46,14 +46,14 @@ void showImageSourcePickerSheet(
                 minVerticalPadding: 14,
                 leading: const Icon(
                   Icons.photo_library_outlined,
-                  color: Color(0xFF8B5A2B),
+                  color: Color(0xFF8C4A27),
                 ),
                 title: Text(
                   'Pilih dari Galeri',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF3B2A1E),
+                    color: const Color(0xFF2B2118),
                   ),
                 ),
                 onTap: () {
@@ -71,14 +71,14 @@ void showImageSourcePickerSheet(
                 minVerticalPadding: 14,
                 leading: const Icon(
                   Icons.camera_alt_outlined,
-                  color: Color(0xFF8B5A2B),
+                  color: Color(0xFF8C4A27),
                 ),
                 title: Text(
                   'Ambil Foto Kamera',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF3B2A1E),
+                    color: const Color(0xFF2B2118),
                   ),
                 ),
                 onTap: () {
@@ -161,7 +161,7 @@ void _showPermissionDeniedDialog(
         style: GoogleFonts.plusJakartaSans(
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: const Color(0xFF3B2A1E),
+          color: const Color(0xFF2B2118),
         ),
       ),
       content: Text(
@@ -170,7 +170,7 @@ void _showPermissionDeniedDialog(
         style: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           height: 21 / 14,
-          color: const Color(0xFF736052),
+          color: const Color(0xFF6E5D4F),
         ),
       ),
       actions: [
@@ -178,8 +178,11 @@ void _showPermissionDeniedDialog(
           onPressed: () => Navigator.pop(ctx),
           style: FilledButton.styleFrom(
             minimumSize: const Size(90, 48),
-            backgroundColor: const Color(0xFF8B5A2B),
+            backgroundColor: const Color(0xFF8C4A27),
             foregroundColor: const Color(0xFFFFFFFF),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
           child: const Text('Mengerti'),
         ),
@@ -228,7 +231,7 @@ class ImagePickerCard extends StatelessWidget {
               color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFFE8DFD1),
+                color: const Color(0xFFE6DDD0),
                 width: 1.5,
               ),
             ),
@@ -271,14 +274,14 @@ class ImagePickerCard extends StatelessWidget {
             icon: const Icon(
               Icons.add_a_photo_outlined,
               size: 18,
-              color: Color(0xFF8B5A2B),
+              color: Color(0xFF8C4A27),
             ),
             label: Text(
               _hasImage ? replaceLabel : selectLabel,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF8B5A2B),
+                color: const Color(0xFF8C4A27),
               ),
             ),
           ),
@@ -313,14 +316,14 @@ class ImagePickerCard extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.image_outlined, size: 44, color: Color(0xFF8B5A2B)),
+        const Icon(Icons.image_outlined, size: 44, color: Color(0xFF8C4A27)),
         const SizedBox(height: 8),
         Text(
           'Foto siap diunggah',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF8B5A2B),
+            color: const Color(0xFF8C4A27),
           ),
         ),
         const SizedBox(height: 2),
@@ -328,7 +331,7 @@ class ImagePickerCard extends StatelessWidget {
           'Pratinjau tidak didukung untuk format ini',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
-            color: const Color(0xFF736052),
+            color: const Color(0xFF6E5D4F),
           ),
         ),
       ],
@@ -342,7 +345,7 @@ class ImagePickerCard extends StatelessWidget {
         const Icon(
           Icons.add_photo_alternate_outlined,
           size: 44,
-          color: Color(0xFF8B5A2B),
+          color: Color(0xFF8C4A27),
         ),
         const SizedBox(height: 8),
         Text(
@@ -350,7 +353,7 @@ class ImagePickerCard extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF8B5A2B),
+            color: const Color(0xFF8C4A27),
           ),
         ),
         const SizedBox(height: 2),
@@ -358,7 +361,7 @@ class ImagePickerCard extends StatelessWidget {
           'Maksimal 2 MB',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
-            color: const Color(0xFF736052),
+            color: const Color(0xFF6E5D4F),
           ),
         ),
       ],

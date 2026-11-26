@@ -40,85 +40,93 @@ class SellerHomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     final firstName = ownerName.trim().split(RegExp(r'\s+')).first;
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header Bersih Beranda dengan jarak atas nyaman
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 40, 16, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Halo, ${firstName.isEmpty ? 'Pemilik' : firstName}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF736052),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SellerCurvedHeader(
+          subtitle: 'Halo, ${firstName.isEmpty ? 'Pemilik' : firstName}',
+          title: 'Dashboard Toko',
+          trailing: onOpenProfileDialog == null
+              ? null
+              : Material(
+                  color: const Color(0x2EFFFFFF),
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    onTap: onOpenProfileDialog,
+                    borderRadius: BorderRadius.circular(14),
+                    child: const Tooltip(
+                      message: 'Profil & Keluar',
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Icon(
+                          Icons.person_outline_rounded,
+                          color: Color(0xFFFDFBF7),
+                          size: 24,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Dashboard Toko',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF3B2A1E),
+                    ),
+                  ),
+                ),
+          bottomChild: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                onTap: () => onOpenProductsTab(stockFilter: 'all'),
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF6E5D4F),
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Cari nama kue atau kelola stok...',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            color: const Color(0xFFA79A8C),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (onOpenProfileDialog != null) ...[
-                  const SizedBox(width: 8),
-                  Material(
-                    color: const Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: const BorderSide(color: Color(0xFFE8DFD1)),
-                    ),
-                    child: InkWell(
-                      onTap: onOpenProfileDialog,
-                      borderRadius: BorderRadius.circular(14),
-                      child: const Tooltip(
-                        message: 'Profil & Keluar',
-                        child: SizedBox(
-                          width: 48,
-                          height: 48,
-                          child: Icon(
-                            Icons.person_outline_rounded,
-                            color: Color(0xFF8B5A2B),
-                            size: 24,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
+        ),
 
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: onRefresh,
-              color: const Color(0xFF8B5A2B),
-              backgroundColor: const Color(0xFFFFFFFF),
-              child: _buildContent(context),
-            ),
+        const SizedBox(height: 12),
+
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: onRefresh,
+            color: const Color(0xFF8C4A27),
+            backgroundColor: const Color(0xFFFFFFFF),
+            child: _buildContent(context),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -163,8 +171,8 @@ class SellerHomeView extends StatelessWidget {
                 title: 'Total Produk',
                 count: totalCount,
                 icon: Icons.inventory_2_outlined,
-                accentColor: const Color(0xFF8B5A2B),
-                badgeBackground: const Color(0xFFF3EBDD),
+                accentColor: const Color(0xFF8C4A27),
+                badgeBackground: const Color(0xFFF5EFE6),
                 onTap: () => onOpenProductsTab(stockFilter: 'all'),
               ),
             ),
@@ -185,8 +193,8 @@ class SellerHomeView extends StatelessWidget {
                 title: 'Habis',
                 count: emptyCount,
                 icon: Icons.error_outline_rounded,
-                accentColor: const Color(0xFFA63232),
-                badgeBackground: const Color(0xFFFDE8E8),
+                accentColor: const Color(0xFF991B1B),
+                badgeBackground: const Color(0xFFFEE2E2),
                 onTap: () => onOpenProductsTab(stockFilter: 'empty'),
               ),
             ),
@@ -203,9 +211,10 @@ class SellerHomeView extends StatelessWidget {
               child: Text(
                 'Perlu Di-Restock',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 17,
+                  fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF3B2A1E),
+                  letterSpacing: -0.2,
+                  color: const Color(0xFF2B2118),
                 ),
               ),
             ),
@@ -213,7 +222,7 @@ class SellerHomeView extends StatelessWidget {
               onPressed: () => onOpenProductsTab(stockFilter: 'all'),
               style: TextButton.styleFrom(
                 minimumSize: const Size(48, 44),
-                foregroundColor: const Color(0xFF8B5A2B),
+                foregroundColor: const Color(0xFF8C4A27),
                 textStyle: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -240,7 +249,7 @@ class SellerHomeView extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE8DFD1)),
+              border: Border.all(color: const Color(0xFFE6DDD0)),
             ),
             child: Row(
               children: [
@@ -253,7 +262,7 @@ class SellerHomeView extends StatelessWidget {
                   ),
                   child: const Icon(
                     Icons.check_circle_outline_rounded,
-                    color: Color(0xFF1E6B3A),
+                    color: Color(0xFF166534),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -266,7 +275,7 @@ class SellerHomeView extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF3B2A1E),
+                          color: const Color(0xFF2B2118),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -274,7 +283,7 @@ class SellerHomeView extends StatelessWidget {
                         'Tidak ada kue dengan stok menipis atau habis saat ini.',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          color: const Color(0xFF736052),
+                          color: const Color(0xFF6E5D4F),
                         ),
                       ),
                     ],
@@ -334,12 +343,12 @@ class _RestockQuickCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8DFD1)),
+        border: Border.all(color: const Color(0xFFE6DDD0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x083B2A1E),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+            color: Color(0x0A2B2118),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -358,7 +367,7 @@ class _RestockQuickCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF3B2A1E),
+                    color: const Color(0xFF2B2118),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -373,7 +382,7 @@ class _RestockQuickCard extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF736052),
+                        color: const Color(0xFF6E5D4F),
                       ),
                     ),
                   ],
@@ -385,14 +394,14 @@ class _RestockQuickCard extends StatelessWidget {
           // Tombol ketuk untuk input manual atau +1 cepat (>= 44dp)
           InkWell(
             onTap: isUpdating ? null : onTapManual,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             child: Container(
               constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF6EC),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE8DFD1)),
+                color: const Color(0xFFFAF7F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE6DDD0)),
               ),
               alignment: Alignment.center,
               child: isUpdating
@@ -401,7 +410,7 @@ class _RestockQuickCard extends StatelessWidget {
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Color(0xFF8B5A2B),
+                        color: Color(0xFF8C4A27),
                       ),
                     )
                   : Text(
@@ -409,18 +418,18 @@ class _RestockQuickCard extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF8B5A2B),
+                        color: const Color(0xFF8C4A27),
                       ),
                     ),
             ),
           ),
           const SizedBox(width: 6),
           Material(
-            color: const Color(0xFF8B5A2B),
-            borderRadius: BorderRadius.circular(10),
+            color: const Color(0xFF8C4A27),
+            borderRadius: BorderRadius.circular(12),
             child: InkWell(
               onTap: isUpdating ? null : onQuickPlus,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               child: const Tooltip(
                 message: 'Tambah 1 stok',
                 child: SizedBox(

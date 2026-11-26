@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/pages/add_edit_cake_page.dart';
+import 'package:frontend/widgets/seller_dashboard_widgets.dart';
 import 'package:frontend/widgets/seller_home_view.dart';
 import 'package:frontend/widgets/seller_menu_view.dart';
 
@@ -252,6 +253,57 @@ void main() {
       await tester.pump();
 
       expect(find.text('Cupcake'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Header SellerCurvedHeader pada Beranda dan Produk memiliki tinggi yang sama',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _mobileWrap(
+          SellerHomeView(
+            ownerName: 'Siti Bakery',
+            cakes: _testCakes(),
+            loading: false,
+            error: null,
+            updatingIds: const {},
+            onRefresh: () async {},
+            onOpenProductsTab: ({String stockFilter = 'all'}) {},
+            onOpenAddTab: () {},
+            onAdjustStock: (_, _) async {},
+            onSetManualStock: (_, _) async {},
+          ),
+        ),
+      );
+      await tester.pump();
+      final homeHeaderSize = tester.getSize(find.byType(SellerCurvedHeader));
+
+      await tester.pumpWidget(
+        _mobileWrap(
+          SellerMenuView(
+            cakes: _testCakes(),
+            categories: _testCategories(),
+            loading: false,
+            error: null,
+            updatingIds: const {},
+            onRefresh: () async {},
+            onAdjustStock: (_, _) async {},
+            onSetManualStock: (_, _) async {},
+            onEditCake: (_) async {},
+            onDeleteCake: (_) async {},
+            onOpenAddTab: () {},
+          ),
+        ),
+      );
+      await tester.pump();
+      final menuHeaderSize = tester.getSize(find.byType(SellerCurvedHeader));
+
+      expect(homeHeaderSize.width, equals(menuHeaderSize.width));
+      expect(homeHeaderSize.height, equals(menuHeaderSize.height));
+      expect(tester.takeException(), isNull);
     },
   );
 }

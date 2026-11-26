@@ -248,6 +248,8 @@ void main() {
     await tester.pump(const Duration(seconds: 16));
     await tester.pump();
 
+    expect(find.byType(AppBottomNav), findsOneWidget);
+    expect(find.byKey(const ValueKey('bottom-nav-active-square')), findsOneWidget);
     expect(find.text('Beranda'), findsOneWidget);
     expect(find.text('Produk'), findsOneWidget);
     expect(find.text('Tambah'), findsOneWidget);
@@ -258,6 +260,8 @@ void main() {
 
     await tester.tap(find.text('Profil'));
     await tester.pump();
+    expect(find.text('Halo, Penjual SweetCraft'), findsOneWidget);
+    expect(find.text('Masuk sebagai Penjual.'), findsOneWidget);
     expect(find.text('Keluar'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

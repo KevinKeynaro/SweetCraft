@@ -3,6 +3,88 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'product_card.dart';
 
+/// Header melengkung cokelat tua (`#5C341E`) yang disinkronkan dengan halaman pembeli.
+class SellerCurvedHeader extends StatelessWidget {
+  const SellerCurvedHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.bottomChild,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final Widget? bottomChild;
+
+  @override
+  Widget build(BuildContext context) {
+    final topPadding = MediaQuery.paddingOf(context).top;
+
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Color(0xFF5C341E),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(16, topPadding + 16, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 50),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (subtitle != null && subtitle!.isNotEmpty) ...[
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFFE6DDD0),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFFDFBF7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing!,
+                ],
+              ],
+            ),
+          ),
+          if (bottomChild != null) ...[
+            const SizedBox(height: 12),
+            bottomChild!,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Menentukan apakah stok tergolong menipis (1..5).
 bool isLowStock(dynamic stock) => stock is num && stock > 0 && stock <= 5;
 
@@ -25,11 +107,11 @@ class StockBadge extends StatelessWidget {
     if (stock is! num) {
       label = 'Pre-Order';
       bg = const Color(0xFFE6F4EA);
-      fg = const Color(0xFF1E6B3A);
+      fg = const Color(0xFF166534);
     } else if (stock <= 0) {
       label = 'Habis';
-      bg = const Color(0xFFFDE8E8);
-      fg = const Color(0xFFA63232);
+      bg = const Color(0xFFFEE2E2);
+      fg = const Color(0xFF991B1B);
     } else if (stock <= 5) {
       label = 'Menipis (${stock.toInt()})';
       bg = const Color(0xFFFEF3C7);
@@ -37,7 +119,7 @@ class StockBadge extends StatelessWidget {
     } else {
       label = 'Aman (${stock.toInt()})';
       bg = const Color(0xFFE6F4EA);
-      fg = const Color(0xFF1E6B3A);
+      fg = const Color(0xFF166534);
     }
 
     return Container(
@@ -95,12 +177,12 @@ class SummaryCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE8DFD1)),
+            border: Border.all(color: const Color(0xFFE6DDD0)),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x0A3B2A1E),
+                color: Color(0x0A2B2118),
                 blurRadius: 10,
-                offset: Offset(0, 3),
+                offset: Offset(0, 4),
               ),
             ],
           ),
@@ -134,7 +216,7 @@ class SummaryCard extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF3B2A1E),
+                  color: const Color(0xFF2B2118),
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -146,7 +228,7 @@ class SummaryCard extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF736052),
+                  color: const Color(0xFF6E5D4F),
                 ),
               ),
             ],
@@ -188,9 +270,9 @@ class BakeryThumbnail extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF6EC),
+        color: const Color(0xFFFAF7F2),
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: const Color(0xFFE8DFD1)),
+        border: Border.all(color: const Color(0xFFE6DDD0)),
       ),
       clipBehavior: Clip.antiAlias,
       child: content,
@@ -199,11 +281,11 @@ class BakeryThumbnail extends StatelessWidget {
 
   Widget _fallbackWidget() {
     return const ColoredBox(
-      color: Color(0xFFF5EDE0),
+      color: Color(0xFFFAF7F2),
       child: Center(
         child: Icon(
-          Icons.bakery_dining_outlined,
-          color: Color(0xFF8B5A2B),
+          Icons.cake_outlined,
+          color: Color(0xFF9C8370),
           size: 28,
         ),
       ),
@@ -245,12 +327,12 @@ class SellerProductCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8DFD1)),
+        border: Border.all(color: const Color(0xFFE6DDD0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A3B2A1E),
+            color: Color(0x0A2B2118),
             blurRadius: 10,
-            offset: Offset(0, 3),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -278,16 +360,16 @@ class SellerProductCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF6EC),
+                            color: const Color(0xFFFAF7F2),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE8DFD1)),
+                            border: Border.all(color: const Color(0xFFE6DDD0)),
                           ),
                           child: Text(
                             category,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF8B5A2B),
+                              color: const Color(0xFF8C4A27),
                             ),
                           ),
                         ),
@@ -302,7 +384,7 @@ class SellerProductCard extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF3B2A1E),
+                        color: const Color(0xFF2B2118),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -311,7 +393,7 @@ class SellerProductCard extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF8B5A2B),
+                        color: const Color(0xFF8C4A27),
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -322,7 +404,7 @@ class SellerProductCard extends StatelessWidget {
           ),
 
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF0E8DA)),
+          const Divider(height: 1, color: Color(0xFFEFE9E1)),
           const SizedBox(height: 10),
 
           // Baris Kontrol Stok Cepat (- / angka manual / +) & Aksi (Edit / Hapus)
@@ -344,7 +426,7 @@ class SellerProductCard extends StatelessWidget {
                     message: 'Ketuk untuk ubah stok manual',
                     child: InkWell(
                       onTap: isUpdatingStock ? null : onManualStockTap,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
                         constraints: const BoxConstraints(
                           minWidth: 52,
@@ -352,9 +434,9 @@ class SellerProductCard extends StatelessWidget {
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF6EC),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFE8DFD1)),
+                          color: const Color(0xFFFAF7F2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE6DDD0)),
                         ),
                         alignment: Alignment.center,
                         child: isUpdatingStock
@@ -363,7 +445,7 @@ class SellerProductCard extends StatelessWidget {
                                 height: 16,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Color(0xFF8B5A2B),
+                                  color: Color(0xFF8C4A27),
                                 ),
                               )
                             : Text(
@@ -371,7 +453,7 @@ class SellerProductCard extends StatelessWidget {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF3B2A1E),
+                                  color: const Color(0xFF2B2118),
                                   fontFeatures: const [
                                     FontFeature.tabularFigures(),
                                   ],
@@ -397,18 +479,18 @@ class SellerProductCard extends StatelessWidget {
                   _SquareIconButton(
                     icon: Icons.edit_outlined,
                     tooltip: 'Edit produk',
-                    color: const Color(0xFF8B5A2B),
-                    backgroundColor: const Color(0xFFF8F1E7),
-                    borderColor: const Color(0xFFE8DFD1),
+                    color: const Color(0xFF8C4A27),
+                    backgroundColor: const Color(0xFFFAF7F2),
+                    borderColor: const Color(0xFFE6DDD0),
                     onPressed: onEdit,
                   ),
                   const SizedBox(width: 6),
                   _SquareIconButton(
                     icon: Icons.delete_outline_rounded,
                     tooltip: 'Hapus produk',
-                    color: const Color(0xFFA63232),
+                    color: const Color(0xFF991B1B),
                     backgroundColor: const Color(0xFFFDF0F0),
-                    borderColor: const Color(0xFFF0D6D6),
+                    borderColor: const Color(0xFFF5C6C6),
                     onPressed: onDelete,
                   ),
                 ],
@@ -450,7 +532,7 @@ class _SquareIconButton extends StatelessWidget {
         maximumSize: const Size(48, 48),
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           side: BorderSide(color: borderColor),
         ),
       ),
@@ -477,11 +559,11 @@ class _StockStepButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: enabled ? const Color(0xFF8B5A2B) : const Color(0xFFEFE9E1),
-        borderRadius: BorderRadius.circular(10),
+        color: enabled ? const Color(0xFF8C4A27) : const Color(0xFFEFE9E1),
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: SizedBox(
             width: 44,
             height: 44,
@@ -523,7 +605,7 @@ Future<int?> showManualStockDialog(
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF3B2A1E),
+                color: const Color(0xFF2B2118),
               ),
             ),
             content: Column(
@@ -535,7 +617,7 @@ Future<int?> showManualStockDialog(
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF736052),
+                    color: const Color(0xFF6E5D4F),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -546,21 +628,21 @@ Future<int?> showManualStockDialog(
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF3B2A1E),
+                    color: const Color(0xFF2B2118),
                   ),
                   decoration: InputDecoration(
                     labelText: 'Jumlah Stok (unit)',
                     errorText: errorText,
                     filled: true,
-                    fillColor: const Color(0xFFFAF6EC),
+                    fillColor: const Color(0xFFFAF7F2),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE8DFD1)),
+                      borderSide: const BorderSide(color: Color(0xFFE6DDD0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(
-                        color: Color(0xFF8B5A2B),
+                        color: Color(0xFF8C4A27),
                         width: 1.5,
                       ),
                     ),
@@ -573,7 +655,7 @@ Future<int?> showManualStockDialog(
                 onPressed: () => Navigator.pop(dialogContext),
                 style: TextButton.styleFrom(
                   minimumSize: const Size(48, 44),
-                  foregroundColor: const Color(0xFF736052),
+                  foregroundColor: const Color(0xFF6E5D4F),
                 ),
                 child: const Text('Batal'),
               ),
@@ -590,8 +672,11 @@ Future<int?> showManualStockDialog(
                 },
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(84, 44),
-                  backgroundColor: const Color(0xFF8B5A2B),
+                  backgroundColor: const Color(0xFF8C4A27),
                   foregroundColor: const Color(0xFFFFFFFF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: const Text('Simpan'),
               ),
@@ -654,7 +739,7 @@ class _DashboardSkeletonState extends State<DashboardSkeleton>
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE8DFD1)),
+              border: Border.all(color: const Color(0xFFE6DDD0)),
             ),
             child: Row(
               children: [
@@ -739,10 +824,10 @@ class DashboardEmptyState extends StatelessWidget {
               width: 68,
               height: 68,
               decoration: const BoxDecoration(
-                color: Color(0xFFF3EBDD),
+                color: Color(0xFFF5EFE6),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 34, color: const Color(0xFF8B5A2B)),
+              child: Icon(icon, size: 34, color: const Color(0xFF8C4A27)),
             ),
             const SizedBox(height: 14),
             Text(
@@ -751,7 +836,7 @@ class DashboardEmptyState extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF3B2A1E),
+                color: const Color(0xFF2B2118),
               ),
             ),
             const SizedBox(height: 6),
@@ -761,7 +846,7 @@ class DashboardEmptyState extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 height: 20 / 13,
-                color: const Color(0xFF736052),
+                color: const Color(0xFF6E5D4F),
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
@@ -772,10 +857,10 @@ class DashboardEmptyState extends StatelessWidget {
                 label: Text(actionLabel!),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(160, 48),
-                  backgroundColor: const Color(0xFF8B5A2B),
+                  backgroundColor: const Color(0xFF8C4A27),
                   foregroundColor: const Color(0xFFFFFFFF),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
               ),
@@ -809,7 +894,7 @@ class DashboardErrorState extends StatelessWidget {
             const Icon(
               Icons.cloud_off_rounded,
               size: 48,
-              color: Color(0xFFA63232),
+              color: Color(0xFF991B1B),
             ),
             const SizedBox(height: 12),
             Text(
@@ -817,7 +902,7 @@ class DashboardErrorState extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF3B2A1E),
+                color: const Color(0xFF2B2118),
               ),
             ),
             const SizedBox(height: 6),
@@ -826,7 +911,7 @@ class DashboardErrorState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                color: const Color(0xFF736052),
+                color: const Color(0xFF6E5D4F),
               ),
             ),
             const SizedBox(height: 18),
@@ -836,10 +921,10 @@ class DashboardErrorState extends StatelessWidget {
               label: const Text('Coba Lagi'),
               style: FilledButton.styleFrom(
                 minimumSize: const Size(140, 48),
-                backgroundColor: const Color(0xFF8B5A2B),
+                backgroundColor: const Color(0xFF8C4A27),
                 foregroundColor: const Color(0xFFFFFFFF),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),

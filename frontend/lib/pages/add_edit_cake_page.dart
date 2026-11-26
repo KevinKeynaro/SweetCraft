@@ -152,7 +152,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFFA63232),
+        backgroundColor: const Color(0xFF991B1B),
       ),
     );
   }
@@ -254,7 +254,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                 ? 'Perubahan produk berhasil disimpan'
                 : 'Produk baru berhasil ditambahkan',
           ),
-          backgroundColor: const Color(0xFF1E6B3A),
+          backgroundColor: const Color(0xFF166534),
         ),
       );
 
@@ -283,7 +283,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
     // Sumber: https://api.flutter.dev/flutter/services/FilteringTextInputFormatter-class.html
     // Sumber: https://api.flutter.dev/flutter/services/LengthLimitingTextInputFormatter-class.html
     final formContent = SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(16, widget.embedded ? 28 : 16, 16, 28),
+      padding: EdgeInsets.fromLTRB(16, widget.embedded ? 16 : 12, 16, 28),
       child: Form(
         key: _formKey,
         child: Column(
@@ -295,7 +295,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF3B2A1E),
+                  color: const Color(0xFF2B2118),
                 ),
               ),
               const SizedBox(height: 4),
@@ -303,7 +303,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                 'Lengkapi detail kue atau pastry untuk etalase toko.',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
-                  color: const Color(0xFF736052),
+                  color: const Color(0xFF6E5D4F),
                 ),
               ),
               const SizedBox(height: 16),
@@ -331,7 +331,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
               decoration: _inputDecoration('Contoh: Strawberry Fruit Tart'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: const Color(0xFF3B2A1E),
+                color: const Color(0xFF2B2118),
               ),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
@@ -354,7 +354,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                     child: Padding(
                       padding: EdgeInsets.all(10),
                       child: CircularProgressIndicator(
-                        color: Color(0xFF8B5A2B),
+                        color: Color(0xFF8C4A27),
                         strokeWidth: 2,
                       ),
                     ),
@@ -365,7 +365,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFFFFF),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE8DFD1)),
+                      border: Border.all(color: const Color(0xFFE6DDD0)),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int>(
@@ -373,7 +373,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                         isExpanded: true,
                         icon: const Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFF8B5A2B),
+                          color: Color(0xFF8C4A27),
                         ),
                         items: _categories.map((cat) {
                           final catLabel = displayCategoryName(
@@ -385,7 +385,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                               catLabel.isEmpty ? 'Kategori' : catLabel,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
-                                color: const Color(0xFF3B2A1E),
+                                color: const Color(0xFF2B2118),
                               ),
                             ),
                           );
@@ -420,13 +420,13 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                         decoration: _inputDecoration('45000').copyWith(
                           prefixText: 'Rp ',
                           prefixStyle: GoogleFonts.plusJakartaSans(
-                            color: const Color(0xFF8B5A2B),
+                            color: const Color(0xFF8C4A27),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          color: const Color(0xFF3B2A1E),
+                          color: const Color(0xFF2B2118),
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
@@ -459,7 +459,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                         decoration: _inputDecoration('10'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          color: const Color(0xFF3B2A1E),
+                          color: const Color(0xFF2B2118),
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
@@ -493,18 +493,18 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
               ),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: const Color(0xFF3B2A1E),
+                color: const Color(0xFF2B2118),
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 26),
 
             // 7. Tombol Simpan (>= 52dp untuk area sentuh nyaman satu tangan)
             FilledButton(
               onPressed: _saving ? null : _submit,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
-                backgroundColor: const Color(0xFF8B5A2B),
+                backgroundColor: const Color(0xFF8C4A27),
                 foregroundColor: const Color(0xFFFFFFFF),
                 disabledBackgroundColor: const Color(0xFFEFE9E1),
                 shape: RoundedRectangleBorder(
@@ -536,10 +536,10 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F3EE), // const Color(0xFFFAF6EC)
+      backgroundColor: const Color(0xFFFDFBF7),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F3EE), // const Color(0xFFFAF6EC)
-        foregroundColor: const Color(0xFF3B2A1E),
+        backgroundColor: const Color(0xFFFDFBF7),
+        foregroundColor: const Color(0xFF2B2118),
         elevation: 0,
         title: Text(
           _isEditing ? 'Edit Produk' : 'Tambah Produk',
@@ -559,7 +559,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
       style: GoogleFonts.plusJakartaSans(
         fontSize: 13,
         fontWeight: FontWeight.w700,
-        color: const Color(0xFF3B2A1E),
+        color: const Color(0xFF2B2118),
       ),
     );
   }
@@ -576,23 +576,23 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE8DFD1)),
+        borderSide: const BorderSide(color: Color(0xFFE6DDD0)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE8DFD1)),
+        borderSide: const BorderSide(color: Color(0xFFE6DDD0)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF8B5A2B), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF8C4A27), width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFA63232)),
+        borderSide: const BorderSide(color: Color(0xFF991B1B)),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFA63232), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF991B1B), width: 1.5),
       ),
     );
   }
