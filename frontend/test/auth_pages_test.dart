@@ -112,9 +112,75 @@ void main() {
 
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Search'), findsWidgets);
-    expect(find.text('Shop'), findsOneWidget);
+    expect(find.text('Pre-Order'), findsOneWidget);
     expect(find.text('Cart'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
+
+    await tester.tap(find.text('Pre-Order'));
+    await tester.pump();
+    expect(find.text('Pre-Order Custom Cake'), findsOneWidget);
+    expect(find.text('Ajukan Pre-Order Custom'), findsOneWidget);
+  });
+
+  testWidgets('indikator navigasi aktif lebih besar, gelap, dan teks tebal', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const SweetCraftApp());
+    await tester.pump(const Duration(seconds: 16));
+
+    final square = find.byKey(const ValueKey('bottom-nav-active-square'));
+    expect(square, findsOneWidget);
+    expect(tester.getSize(square), const Size(62, 62));
+
+    final container = tester.widget<Container>(square);
+    final decoration = container.decoration as BoxDecoration;
+    expect(decoration.color, const Color(0xFF3A2114));
+    expect(decoration.borderRadius, BorderRadius.circular(18));
+
+    final label = tester.widget<Text>(find.text('Home'));
+    expect(label.style?.fontWeight, FontWeight.w800);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('kotak kategori lebih besar, gelap, dan label tebal', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const SweetCraftApp());
+    await tester.pump(const Duration(seconds: 16));
+
+    final squares = find.byWidgetPredicate((widget) {
+      if (widget is! Container) return false;
+      final key = widget.key;
+      return key is ValueKey<String> &&
+          key.value.startsWith('category-square-');
+    });
+    expect(squares, findsWidgets);
+
+    final square = squares.first;
+    final size = tester.getSize(square);
+    expect(size.width, greaterThan(48));
+    expect(size.width, lessThanOrEqualTo(64));
+    expect(size.width, equals(size.height));
+
+    final container = tester.widget<Container>(square);
+    final decoration = container.decoration as BoxDecoration;
+    expect(const [
+      Color(0xFF7A2E2E),
+      Color(0xFF9A4A2E),
+      Color(0xFF8A5A1E),
+      Color(0xFF5A3A2A),
+      Color(0xFF4F5D3A),
+    ], contains(decoration.color));
+    expect(decoration.borderRadius, BorderRadius.circular(16));
+
+    final key = container.key! as ValueKey<String>;
+    final name = key.value.substring('category-square-'.length);
+    final label = tester.widget<Text>(
+      find.byKey(ValueKey('category-label-$name')),
+    );
+    expect(label.style?.fontSize, 12.5);
+    expect(label.style?.fontWeight, FontWeight.w800);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('login menampilkan error saat field kosong', (tester) async {
@@ -187,8 +253,8 @@ void main() {
     expect(find.text('Tambah'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
     expect(find.text('Dashboard Toko'), findsOneWidget);
-    expect(find.text('Total Produk'), findsOneWidget);
-    expect(find.text('Perlu Di-Restock'), findsOneWidget);
+    expect(find.text('Tidak Dapat Memuat Data'), findsOneWidget);
+    expect(find.text('Coba Lagi'), findsOneWidget);
 
     await tester.tap(find.text('Profil'));
     await tester.pump();

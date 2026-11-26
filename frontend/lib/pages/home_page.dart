@@ -4,12 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/app_button.dart';
+import '../widgets/buyer_orders_view.dart';
 import '../widgets/catalog_view.dart';
-import '../widgets/seller_dashboard_widgets.dart';
 import '../widgets/seller_home_view.dart';
 import '../widgets/seller_menu_view.dart';
 import 'add_edit_cake_page.dart';
 import 'catalog_page.dart';
+import 'create_order_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.name, required this.role});
@@ -29,9 +30,9 @@ class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> _sellerCategories = [];
   bool _sellerLoading = true;
   String? _sellerError;
-  bool _isMockMode = false;
   final Set<int> _updatingCakeIds = {};
   String _productsStockFilter = 'all';
+  int _buyerOrdersRefreshSignal = 0;
 
   bool get _isSeller => widget.role == 'penjual';
 
@@ -53,44 +54,36 @@ class _HomePageState extends State<HomePage> {
       final cakesRes = await ApiService.get('/cakes');
       final catsRes = await ApiService.get('/categories');
 
-      final cakeList = ((cakesRes as Map<String, dynamic>?)?['cakes'] as List?)
+      final cakeList =
+          ((cakesRes as Map<String, dynamic>?)?['cakes'] as List?)
               ?.cast<Map<String, dynamic>>() ??
           [];
-      final catList = ((catsRes as Map<String, dynamic>?)?['categories'] as List?)
+      final catList =
+          ((catsRes as Map<String, dynamic>?)?['categories'] as List?)
               ?.cast<Map<String, dynamic>>() ??
           [];
 
       if (!mounted) return;
-      if (cakeList.isEmpty) {
-        // Fallback ke 8 data produk mock bila backend kosong
-        setState(() {
-          _sellerCakes = buildMockBakeryCakes();
-          _sellerCategories =
-              catList.isNotEmpty ? catList : buildMockBakeryCategories();
-          _isMockMode = true;
-          _sellerLoading = false;
-        });
-      } else {
-        setState(() {
-          _sellerCakes = cakeList.map((e) => Map<String, dynamic>.from(e)).toList();
-          _sellerCategories =
-              catList.isNotEmpty ? catList : buildMockBakeryCategories();
-          _isMockMode = false;
-          _sellerLoading = false;
-        });
-      }
+      setState(() {
+        _sellerCakes = cakeList
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        _sellerCategories = catList
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        _sellerLoading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _sellerError = e.message;
+        _sellerLoading = false;
+      });
     } catch (_) {
       if (!mounted) return;
-      // Fallback otomatis ke 8 data produk mock bila backend offline/timeout
       setState(() {
-        if (_sellerCakes.isEmpty) {
-          _sellerCakes = buildMockBakeryCakes();
-        }
-        if (_sellerCategories.isEmpty) {
-          _sellerCategories = buildMockBakeryCategories();
-        }
-        _isMockMode = true;
-        _sellerError = null;
+        _sellerError =
+            'Gagal memuat data toko. Periksa koneksi lalu coba lagi.';
         _sellerLoading = false;
       });
     }
@@ -99,7 +92,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _updateCakeStock(Map<String, dynamic> cake, int newStock) async {
     final safeStock = newStock < 0 ? 0 : newStock;
     final cakeId = cake['id'] as int?;
-    if (cakeId == null) return;
+    if (cakeId == null || cakeId <= 0) return;
 
     final index = _sellerCakes.indexWhere((c) => c['id'] == cakeId);
     if (index == -1) return;
@@ -108,18 +101,8 @@ class _HomePageState extends State<HomePage> {
 
     setState(() {
       _updatingCakeIds.add(cakeId);
-      _sellerCakes[index] = {
-        ..._sellerCakes[index],
-        'stock': safeStock,
-      };
+      _sellerCakes[index] = {..._sellerCakes[index], 'stock': safeStock};
     });
-
-    if (_isMockMode || cakeId < 0) {
-      await Future<void>.delayed(const Duration(milliseconds: 120));
-      if (!mounted) return;
-      setState(() => _updatingCakeIds.remove(cakeId));
-      return;
-    }
 
     try {
       await ApiService.put('/cakes/$cakeId', {'stock': safeStock});
@@ -128,10 +111,7 @@ class _HomePageState extends State<HomePage> {
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _sellerCakes[index] = {
-          ..._sellerCakes[index],
-          'stock': previousStock,
-        };
+        _sellerCakes[index] = {..._sellerCakes[index], 'stock': previousStock};
         _updatingCakeIds.remove(cakeId);
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -143,10 +123,7 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _sellerCakes[index] = {
-          ..._sellerCakes[index],
-          'stock': previousStock,
-        };
+        _sellerCakes[index] = {..._sellerCakes[index], 'stock': previousStock};
         _updatingCakeIds.remove(cakeId);
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,11 +144,8 @@ class _HomePageState extends State<HomePage> {
     final updated = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
-        builder: (context) => AddEditCakePage(
-          cake: cake,
-          initialCategories: _sellerCategories,
-          isMockMode: _isMockMode,
-        ),
+        builder: (context) =>
+            AddEditCakePage(cake: cake, initialCategories: _sellerCategories),
       ),
     );
 
@@ -236,32 +210,30 @@ class _HomePageState extends State<HomePage> {
 
     if (shouldDelete != true || !mounted || cakeId == null) return;
 
-    if (!_isMockMode && cakeId > 0) {
-      try {
-        await ApiService.delete('/cakes/$cakeId');
-      } on ApiException catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              e.isConflict
-                  ? 'Produk tidak bisa dihapus karena sudah ada dalam pesanan.'
-                  : e.message,
-            ),
-            backgroundColor: const Color(0xFFA63232),
+    try {
+      await ApiService.delete('/cakes/$cakeId');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.isConflict
+                ? 'Produk tidak bisa dihapus karena sudah ada dalam pesanan.'
+                : e.message,
           ),
-        );
-        return;
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal menghapus produk: $e'),
-            backgroundColor: const Color(0xFFA63232),
-          ),
-        );
-        return;
-      }
+          backgroundColor: const Color(0xFFA63232),
+        ),
+      );
+      return;
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menghapus produk: $e'),
+          backgroundColor: const Color(0xFFA63232),
+        ),
+      );
+      return;
     }
 
     if (!mounted) return;
@@ -351,7 +323,6 @@ class _HomePageState extends State<HomePage> {
               cakes: _sellerCakes,
               loading: _sellerLoading,
               error: _sellerError,
-              isMockMode: _isMockMode,
               updatingIds: _updatingCakeIds,
               onRefresh: _loadSellerInventory,
               onOpenProductsTab: ({String stockFilter = 'all'}) {
@@ -381,10 +352,10 @@ class _HomePageState extends State<HomePage> {
             AddEditCakePage(
               embedded: true,
               initialCategories: _sellerCategories,
-              isMockMode: _isMockMode,
               onSaved: (newCake) {
                 setState(() {
                   _sellerCakes.insert(0, newCake);
+                  _sellerError = null;
                   _productsStockFilter = 'all';
                   _index = 1;
                 });
@@ -393,21 +364,32 @@ class _HomePageState extends State<HomePage> {
             _SellerProfileTab(onLogout: _confirmLogout),
           ]
         : <Widget>[
-            CatalogView(userName: widget.name),
+            CatalogView(
+              userName: widget.name,
+              onOrderCreated: () {
+                setState(() {
+                  _buyerOrdersRefreshSignal++;
+                  _index = 3;
+                });
+              },
+            ),
             const _PlaceholderTab(
               icon: Icons.search_rounded,
               title: 'Search',
               description: 'Cari kue favorit Anda.',
             ),
-            const _PlaceholderTab(
-              icon: Icons.storefront_outlined,
-              title: 'Shop',
-              description: 'Jelajahi menu toko SweetCraft.',
+            CreateOrderPage(
+              embedded: true,
+              onOrderCreated: () {
+                setState(() {
+                  _buyerOrdersRefreshSignal++;
+                  _index = 3;
+                });
+              },
             ),
-            const _PlaceholderTab(
-              icon: Icons.shopping_bag_outlined,
-              title: 'Cart',
-              description: 'Keranjang belanja Anda masih kosong.',
+            BuyerOrdersView(
+              refreshSignal: _buyerOrdersRefreshSignal,
+              onBrowseCatalog: () => setState(() => _index = 0),
             ),
             _ProfileTab(
               name: widget.name,
@@ -422,74 +404,124 @@ class _HomePageState extends State<HomePage> {
           : const Color(0xFFFDFBF7),
       body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: _isSeller
-          ? NavigationBar(
+          ? _SellerBottomNav(
               selectedIndex: _index,
-              onDestinationSelected: (index) => setState(() => _index = index),
-              backgroundColor: const Color(0xFFFFFFFF),
-              surfaceTintColor: Colors.transparent,
-              indicatorColor: const Color(0xFFF3EBDD),
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-              labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                final selected = states.contains(WidgetState.selected);
-                return GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                  color: selected
-                      ? const Color(0xFF8B5A2B)
-                      : const Color(0xFF736052),
-                );
-              }),
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.dashboard_outlined,
-                    color: Color(0xFF736052),
-                  ),
-                  selectedIcon: Icon(
-                    Icons.dashboard_rounded,
-                    color: Color(0xFF8B5A2B),
-                  ),
-                  label: 'Beranda',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.inventory_2_outlined,
-                    color: Color(0xFF736052),
-                  ),
-                  selectedIcon: Icon(
-                    Icons.inventory_2_rounded,
-                    color: Color(0xFF8B5A2B),
-                  ),
-                  label: 'Produk',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: Color(0xFF736052),
-                  ),
-                  selectedIcon: Icon(
-                    Icons.add_circle_rounded,
-                    color: Color(0xFF8B5A2B),
-                  ),
-                  label: 'Tambah',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.person_outline_rounded,
-                    color: Color(0xFF736052),
-                  ),
-                  selectedIcon: Icon(
-                    Icons.person_rounded,
-                    color: Color(0xFF8B5A2B),
-                  ),
-                  label: 'Profil',
-                ),
-              ],
+              onItemSelected: (index) => setState(() => _index = index),
             )
           : AppBottomNav(
               selectedIndex: _index,
               onItemSelected: (index) => setState(() => _index = index),
             ),
+    );
+  }
+}
+
+class _SellerBottomNav extends StatelessWidget {
+  const _SellerBottomNav({
+    required this.selectedIndex,
+    required this.onItemSelected,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onItemSelected;
+
+  static const _items = [
+    (
+      icon: Icons.dashboard_outlined,
+      activeIcon: Icons.dashboard_rounded,
+      label: 'Beranda',
+    ),
+    (
+      icon: Icons.inventory_2_outlined,
+      activeIcon: Icons.inventory_2_rounded,
+      label: 'Produk',
+    ),
+    (
+      icon: Icons.add_circle_outline_rounded,
+      activeIcon: Icons.add_circle_rounded,
+      label: 'Tambah',
+    ),
+    (
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded,
+      label: 'Profil',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        border: Border(top: BorderSide(color: Color(0xFFE8DFD1))),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x143B2A1E),
+            blurRadius: 16,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(10, 10, 10, 10 + bottomPadding),
+      child: Row(
+        children: List.generate(_items.length, (i) {
+          final item = _items[i];
+          final selected = i == selectedIndex;
+
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Material(
+                color: selected
+                    ? const Color(0xFF5C341E)
+                    : const Color(0xFFF3ECE2),
+                borderRadius: BorderRadius.circular(18),
+                elevation: selected ? 2 : 0,
+                shadowColor: const Color(0x335C341E),
+                child: InkWell(
+                  onTap: () => onItemSelected(i),
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    height: 58,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          selected ? item.activeIcon : item.icon,
+                          size: 25,
+                          color: selected
+                              ? const Color(0xFFFFFFFF)
+                              : const Color(0xFF4A3525),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            fontWeight: selected
+                                ? FontWeight.w800
+                                : FontWeight.w700,
+                            color: selected
+                                ? const Color(0xFFFFFFFF)
+                                : const Color(0xFF4A3525),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }

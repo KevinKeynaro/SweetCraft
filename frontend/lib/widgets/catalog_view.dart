@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../pages/create_order_page.dart';
+import '../pages/login_page.dart';
 import '../services/api.dart';
+import 'product_card.dart';
 
-/// Halaman Home / Katalog SweetCraft yang mengacu pada gambar referensi:
-/// 1. Header Container cokelat tua dengan label "Location", pin lokasi, dan dropdown.
-/// 2. Search bar full-width berlatar putih dengan placeholder "Search".
-/// 3. Section "Special Offer" & promotion banner warm saddle dengan tart image yang diperbesar.
-/// 4. Section "Categories" dengan 5 kategori (Cake, Cup Cake, Cookies, Donuts, Breads)
-///    berlatar warna pastel serasi, tanpa icon, dan pas di dalam margin banner.
-/// 5. Section "Products" (Header Saja).
-/// Judul section menggunakan font sans-serif bold (GoogleFonts.plusJakartaSans).
+/// Halaman Home / Katalog SweetCraft untuk pembeli & tamu:
+/// 1. Header Container cokelat tua (meluas ke atas area status bar) dengan "Location" & Search Bar aktif.
+/// 2. Section "Special Offer" & promotion banner warm saddle dengan gambar tart.
+/// 3. Section "Categories" (5 kotak persegi empat bernuansa gelap yang bisa diketuk untuk filter kategori).
+/// 4. Section "Products" menampilkan grid kartu produk dari backend (`GET /api/cakes`) lengkap
+///    dengan loading, empty/error state, filter pencarian, dan detail produk saat diketuk.
 class CatalogView extends StatefulWidget {
-  const CatalogView({super.key, this.headerAction, this.userName});
+  const CatalogView({
+    super.key,
+    this.headerAction,
+    this.userName,
+    this.onOrderCreated,
+  });
 
   final Widget? headerAction;
   final String? userName;
+  final VoidCallback? onOrderCreated;
 
   @override
   State<CatalogView> createState() => _CatalogViewState();
@@ -23,6 +30,11 @@ class CatalogView extends StatefulWidget {
 
 class _CatalogViewState extends State<CatalogView> {
   List<Map<String, dynamic>> _categories = [];
+  List<Map<String, dynamic>> _cakes = [];
+  bool _loading = true;
+  String? _error;
+  String _searchQuery = '';
+  String? _selectedCategory;
   final _searchController = TextEditingController();
 
   static const _fallbackCategories = [
@@ -30,7 +42,7 @@ class _CatalogViewState extends State<CatalogView> {
     (name: 'Cup Cake', icon: 'assets/images/cupcake-icon.png'),
     (name: 'Cookies', icon: 'assets/images/cupcake.png'),
     (name: 'Donuts', icon: 'assets/images/sour-dough.png'),
-    (name: 'Breads', icon: 'assets/images/artisan-bread-icon.png'),
+    (name: 'Bread', icon: 'assets/images/artisan-bread-icon.png'),
   ];
 
   @override
@@ -46,20 +58,48 @@ class _CatalogViewState extends State<CatalogView> {
   }
 
   Future<void> _load() async {
+    if (_cakes.isEmpty) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+
     try {
-      final results = await ApiService.get('/categories');
-      final categoriesPayload = results as Map<String, dynamic>;
+      final results = await Future.wait([
+        ApiService.get('/categories'),
+        ApiService.get('/cakes'),
+      ]);
+      final categoriesPayload = results[0] as Map<String, dynamic>?;
+      final cakesPayload = results[1] as Map<String, dynamic>?;
+
       final categories =
-          (categoriesPayload['categories'] as List?)
+          (categoriesPayload?['categories'] as List?)
               ?.cast<Map<String, dynamic>>() ??
+          <Map<String, dynamic>>[];
+      final cakes =
+          (cakesPayload?['cakes'] as List?)?.cast<Map<String, dynamic>>() ??
           <Map<String, dynamic>>[];
 
       if (!mounted) return;
       setState(() {
         _categories = categories;
+        _cakes = cakes;
+        _loading = false;
+        _error = null;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
       });
     } catch (_) {
       if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Gagal memuat menu kue. Periksa koneksi lalu coba lagi.';
+      });
     }
   }
 
@@ -77,76 +117,538 @@ class _CatalogViewState extends State<CatalogView> {
     return 'assets/images/cupcake-icon.png';
   }
 
+  List<Map<String, dynamic>> _filteredCakes() {
+    final q = _searchQuery.trim().toLowerCase();
+    final selectedCat = _selectedCategory?.toLowerCase();
+
+    return _cakes.where((cake) {
+      final name = (cake['name'] as String? ?? '').toLowerCase();
+      final desc = (cake['description'] as String? ?? '').toLowerCase();
+      final cat = (cake['category'] as String? ?? '').toLowerCase();
+
+      if (q.isNotEmpty && !name.contains(q) && !desc.contains(q)) {
+        return false;
+      }
+
+      if (selectedCat != null && selectedCat.isNotEmpty) {
+        if (selectedCat == 'cake') {
+          if (!cat.contains('cake') && !cat.contains('tart')) return false;
+        } else if (selectedCat == 'cup cake') {
+          if (!cat.contains('cupcake') && !cat.contains('cup cake')) {
+            return false;
+          }
+        } else if (selectedCat == 'bread' || selectedCat == 'breads') {
+          if (!cat.contains('bread') && !cat.contains('roti')) return false;
+        } else if (!cat.contains(selectedCat)) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+  }
+
+  void _resetFilters() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _selectedCategory = null;
+    });
+  }
+
+  Future<void> _startOrder({Map<String, dynamic>? cake}) async {
+    final token = await ApiService.getToken();
+    if (!mounted) return;
+
+    if (token == null || token.isEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+      return;
+    }
+
+    final created = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(builder: (context) => CreateOrderPage(cake: cake)),
+    );
+    if (created != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            cake != null
+                ? 'Pesanan berhasil dibuat!'
+                : 'Pesanan custom berhasil diajukan!',
+          ),
+          backgroundColor: const Color(0xFF166534),
+        ),
+      );
+      _load();
+      widget.onOrderCreated?.call();
+    }
+  }
+
+  void _showCakeDetail(Map<String, dynamic> cake) {
+    final name = cake['name'] as String? ?? 'Kue';
+    final category = displayCategoryName(cake['category'] as String?);
+    final description = cake['description'] as String? ?? '';
+    final imageUrl = cake['image_url'] as String?;
+    final stock = cake['stock'];
+    final isCustom = cake['is_custom'] == true || cake['is_custom'] == 1;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFFFFFFFF),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6DDD0),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 10,
+                    child: imageUrl != null && imageUrl.isNotEmpty
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const _CakeFallbackBox(),
+                          )
+                        : const _CakeFallbackBox(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    if (category.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5EFE6),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          category,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF8C4A27),
+                          ),
+                        ),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE6F4EA),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        stockLabel(stock),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E6B3A),
+                        ),
+                      ),
+                    ),
+                    if (isCustom)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Pre-Order Custom',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF92400E),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  name,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF2B2118),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formatRupiah(cake['price']),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF8C4A27),
+                  ),
+                ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    description,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      height: 21 / 14,
+                      color: const Color(0xFF6E5D4F),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          foregroundColor: const Color(0xFF6E5D4F),
+                          side: const BorderSide(color: Color(0xFFE6DDD0)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          textStyle: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        child: const Text('Tutup'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton(
+                        onPressed: (stock is num && stock <= 0)
+                            ? null
+                            : () {
+                                Navigator.pop(ctx);
+                                _startOrder(cake: cake);
+                              },
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          backgroundColor: const Color(0xFF8C4A27),
+                          foregroundColor: const Color(0xFFFFFFFF),
+                          disabledBackgroundColor: const Color(0xFFEFE9E1),
+                          disabledForegroundColor: const Color(0xFFA79A8C),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          textStyle: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        child: Text(
+                          (stock is num && stock <= 0)
+                              ? 'Stok Habis'
+                              : (widget.headerAction != null
+                                    ? 'Masuk untuk Pesan'
+                                    : 'Pesan Sekarang'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final horizontalPadding = width > 720 ? (width - 720) / 2 : 20.0;
+    final topSafe = MediaQuery.paddingOf(context).top;
 
-    final categoriesToDisplay = (_categories.isNotEmpty
-            ? _categories.map((c) {
-                final name = c['name'] as String? ?? 'Kue';
-                return (name: name, icon: _iconForCategory(name));
-              }).toList()
-            : _fallbackCategories)
-        .take(5)
-        .toList();
+    final categoriesToDisplay =
+        (_categories.isNotEmpty
+                ? _categories.map((c) {
+                    final name = displayCategoryName(c['name'] as String?);
+                    return (
+                      name: name.isEmpty ? 'Kue' : name,
+                      icon: _iconForCategory(name),
+                    );
+                  }).toList()
+                : _fallbackCategories)
+            .take(5)
+            .toList();
 
-    return SafeArea(
-      bottom: false,
-      child: RefreshIndicator(
-        onRefresh: _load,
-        color: const Color(0xFF8C4A27),
-        backgroundColor: const Color(0xFFFFFFFF),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 1. Header Container & Location & Search Bar
-              _HeaderSection(
-                horizontalPadding: horizontalPadding,
-                action: widget.headerAction,
-                searchController: _searchController,
+    final filtered = _filteredCakes();
+    final hasFilter =
+        _searchQuery.trim().isNotEmpty || _selectedCategory != null;
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: const Color(0xFF8C4A27),
+      backgroundColor: const Color(0xFFFFFFFF),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Header Container cokelat tua menyatu hingga area status bar atas
+            _HeaderSection(
+              topPadding: topSafe,
+              horizontalPadding: horizontalPadding,
+              action: widget.headerAction,
+              searchController: _searchController,
+              searchQuery: _searchQuery,
+              onSearchChanged: (val) => setState(() => _searchQuery = val),
+              onClearSearch: () {
+                _searchController.clear();
+                setState(() => _searchQuery = '');
+              },
+            ),
+
+            const SizedBox(height: 22),
+
+            // 2. Section "Special Offer" & Promotion Banner
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: const _SectionHeader(title: 'Special Offer'),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: _SpecialOfferBanner(onShopNow: () => _startOrder()),
+            ),
+
+            const SizedBox(height: 24),
+
+            // 3. Section "Categories"
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: _SectionHeader(
+                title: 'Categories',
+                actionLabel: _selectedCategory != null ? 'Reset' : 'See All',
+                onSeeAll: _selectedCategory != null ? _resetFilters : null,
               ),
+            ),
+            const SizedBox(height: 14),
+            _CategoriesHorizontalList(
+              categories: categoriesToDisplay,
+              horizontalPadding: horizontalPadding,
+              selectedCategory: _selectedCategory,
+              onSelectCategory: (name) {
+                setState(() {
+                  _selectedCategory = _selectedCategory == name ? null : name;
+                });
+              },
+            ),
 
-              const SizedBox(height: 24),
+            const SizedBox(height: 26),
 
-              // 2. Section "Special Offer" & Promotion Banner
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: const _SectionHeader(title: 'Special Offer'),
+            // 4. Section "Products" + Grid Produk dari Backend
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: _SectionHeader(
+                title: 'Products',
+                actionLabel: hasFilter ? 'Reset' : 'See All',
+                onSeeAll: hasFilter ? _resetFilters : _load,
               ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: const _SpecialOfferBanner(),
-              ),
+            ),
+            const SizedBox(height: 14),
 
-              const SizedBox(height: 24),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: _buildProductsBody(width, filtered, hasFilter),
+            ),
 
-              // 3. Section "Categories"
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: const _SectionHeader(title: 'Categories'),
-              ),
-              const SizedBox(height: 14),
-              _CategoriesHorizontalList(
-                categories: categoriesToDisplay,
-                horizontalPadding: horizontalPadding,
-              ),
+            const SizedBox(height: 36),
+          ],
+        ),
+      ),
+    );
+  }
 
-              const SizedBox(height: 28),
-
-              // 4. Section "Products" (Header Saja)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: const _SectionHeader(title: 'Products'),
-              ),
-
-              const SizedBox(height: 40),
-            ],
+  Widget _buildProductsBody(
+    double screenWidth,
+    List<Map<String, dynamic>> filtered,
+    bool hasFilter,
+  ) {
+    if (_loading && _cakes.isEmpty) {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 2,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.72,
+        ),
+        itemBuilder: (_, _) => Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3EBDD),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
+      );
+    }
+
+    if (_error != null && _cakes.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE6DDD0)),
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 36,
+              color: Color(0xFF991B1B),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: const Color(0xFF6E5D4F),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Coba Lagi'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(140, 44),
+                backgroundColor: const Color(0xFF8C4A27),
+                foregroundColor: const Color(0xFFFFFFFF),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (filtered.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE6DDD0)),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              hasFilter ? Icons.search_off_rounded : Icons.cake_outlined,
+              size: 40,
+              color: const Color(0xFF9C8370),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              hasFilter
+                  ? 'Tidak ada kue yang cocok'
+                  : 'Belum ada menu kue tersedia',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF2B2118),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              hasFilter
+                  ? 'Coba kata kunci atau kategori lain.'
+                  : 'Tarik ke bawah untuk memuat ulang etalase.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: const Color(0xFF6E5D4F),
+              ),
+            ),
+            if (hasFilter) ...[
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _resetFilters,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(120, 44),
+                  foregroundColor: const Color(0xFF8C4A27),
+                ),
+                child: const Text('Tampilkan Semua'),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    final crossAxisCount = screenWidth > 600 ? 3 : 2;
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filtered.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.66,
+      ),
+      itemBuilder: (context, index) {
+        final cake = filtered[index];
+        return ProductCard(cake: cake, onTap: () => _showCakeDetail(cake));
+      },
+    );
+  }
+}
+
+class _CakeFallbackBox extends StatelessWidget {
+  const _CakeFallbackBox();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFFAF7F2),
+      child: const Center(
+        child: Icon(Icons.cake_outlined, size: 48, color: Color(0xFF9C8370)),
       ),
     );
   }
@@ -155,14 +657,22 @@ class _CatalogViewState extends State<CatalogView> {
 /// Header Container cokelat tua dengan Location dan Search bar full-width
 class _HeaderSection extends StatelessWidget {
   const _HeaderSection({
+    required this.topPadding,
     required this.horizontalPadding,
     this.action,
     required this.searchController,
+    required this.searchQuery,
+    required this.onSearchChanged,
+    required this.onClearSearch,
   });
 
+  final double topPadding;
   final double horizontalPadding;
   final Widget? action;
   final TextEditingController searchController;
+  final String searchQuery;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +688,12 @@ class _HeaderSection extends StatelessWidget {
           ),
         ],
       ),
-      padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 24),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        topPadding + 16,
+        horizontalPadding,
+        24,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -250,6 +765,7 @@ class _HeaderSection extends StatelessWidget {
             ),
             child: TextField(
               controller: searchController,
+              onChanged: onSearchChanged,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 color: const Color(0xFF2B2118),
@@ -270,6 +786,17 @@ class _HeaderSection extends StatelessWidget {
                   minWidth: 44,
                   minHeight: 48,
                 ),
+                suffixIcon: searchQuery.isNotEmpty
+                    ? IconButton(
+                        onPressed: onClearSearch,
+                        tooltip: 'Hapus pencarian',
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          size: 20,
+                          color: Color(0xFF6E5D4F),
+                        ),
+                      )
+                    : null,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -284,11 +811,17 @@ class _HeaderSection extends StatelessWidget {
   }
 }
 
-/// Header baris dengan judul di kiri dan teks "See All" cokelat di kanan
+/// Header baris dengan judul di kiri dan teks "See All" / "Reset" cokelat di kanan
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
+  const _SectionHeader({
+    required this.title,
+    this.actionLabel = 'See All',
+    this.onSeeAll,
+  });
 
   final String title;
+  final String actionLabel;
+  final VoidCallback? onSeeAll;
 
   @override
   Widget build(BuildContext context) {
@@ -306,13 +839,17 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
         InkWell(
-          onTap: null,
-          child: Text(
-            'See All',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF8C4A27),
+          onTap: onSeeAll,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Text(
+              actionLabel,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF8C4A27),
+              ),
             ),
           ),
         ),
@@ -323,7 +860,9 @@ class _SectionHeader extends StatelessWidget {
 
 /// Promotion Banner warm saddle dengan badge "Limited time.", "Get Special Offer", "Up to 50%", "Shop Now", gambar Tarts, & dots
 class _SpecialOfferBanner extends StatelessWidget {
-  const _SpecialOfferBanner();
+  const _SpecialOfferBanner({this.onShopNow});
+
+  final VoidCallback? onShopNow;
 
   @override
   Widget build(BuildContext context) {
@@ -401,22 +940,26 @@ class _SpecialOfferBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    // Tombol CTA "Shop Now"
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F2),
+                    // Tombol CTA "Shop Now" (arah ke Pre-Order Custom Cake)
+                    Material(
+                      color: const Color(0xFFFAF7F2),
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        onTap: onShopNow,
                         borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Shop Now',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF7E3D18),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 7,
+                          ),
+                          child: Text(
+                            'Shop Now',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF7E3D18),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -484,65 +1027,70 @@ class _SpecialOfferBanner extends StatelessWidget {
   }
 }
 
-/// Daftar 5 kategori berlatar warna pastel yang serasi, tanpa icon,
-/// dan berukuran proporsional agar muat di dalam margin promotion banner.
+/// Daftar 5 kategori persegi empat bernuansa gelap yang interaktif saat diketuk,
+/// tetap berukuran proporsional agar muat di dalam margin promotion banner.
 class _CategoriesHorizontalList extends StatelessWidget {
   const _CategoriesHorizontalList({
     required this.categories,
     required this.horizontalPadding,
+    required this.selectedCategory,
+    required this.onSelectCategory,
   });
 
   final List<({String name, String icon})> categories;
   final double horizontalPadding;
+  final String? selectedCategory;
+  final ValueChanged<String> onSelectCategory;
 
   static const _categoryStyles = [
-    // 1. Cake: soft warm rose / strawberry cream
-    (
-      bg: Color(0xFFFDF0ED),
-      border: Color(0xFFF7DDD6),
-    ),
-    // 2. Cup Cake: soft warm peach blush
-    (
-      bg: Color(0xFFFDEEE8),
-      border: Color(0xFFF7D8CE),
-    ),
-    // 3. Cookies: warm golden butter / biscuit
-    (
-      bg: Color(0xFFFBF1DE),
-      border: Color(0xFFF5E0BD),
-    ),
-    // 4. Donuts: warm glazed latte / cocoa cream
-    (
-      bg: Color(0xFFF6ECE1),
-      border: Color(0xFFEADBCE),
-    ),
-    // 5. Breads: soft rustic wheat / sage meadow
-    (
-      bg: Color(0xFFEFF5EB),
-      border: Color(0xFFDEE9D7),
-    ),
+    // 1. Cake: deep berry / dark strawberry
+    (bg: Color(0xFF7A2E2E), border: Color(0xFF5E2020)),
+    // 2. Cup Cake: burnt terracotta
+    (bg: Color(0xFF9A4A2E), border: Color(0xFF7A3822)),
+    // 3. Cookies: dark caramel / toasted biscuit
+    (bg: Color(0xFF8A5A1E), border: Color(0xFF6B4516)),
+    // 4. Donuts: deep cocoa / dark latte
+    (bg: Color(0xFF5A3A2A), border: Color(0xFF432A1E)),
+    // 5. Breads: dark olive / rustic sage
+    (bg: Color(0xFF4F5D3A), border: Color(0xFF3C472C)),
   ];
 
   @override
   Widget build(BuildContext context) {
+    if (categories.isEmpty) return const SizedBox.shrink();
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (int i = 0; i < categories.length; i++) ...[
-            if (i > 0) const SizedBox(width: 8),
-            Expanded(
-              child: _CategoryItem(
-                name: categories[i].name,
-                backgroundColor:
-                    _categoryStyles[i % _categoryStyles.length].bg,
-                borderColor:
-                    _categoryStyles[i % _categoryStyles.length].border,
-              ),
-            ),
-          ],
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const gap = 8.0;
+          final slotWidth =
+              (constraints.maxWidth - gap * (categories.length - 1)) /
+              categories.length;
+          // Lebih besar dari 48dp, tetap muat 5 kategori di layar 320dp.
+          // Sumber: https://api.flutter.dev/flutter/widgets/LayoutBuilder-class.html
+          final squareSize = slotWidth.clamp(48.0, 64.0).toDouble();
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (int i = 0; i < categories.length; i++) ...[
+                if (i > 0) const SizedBox(width: gap),
+                Expanded(
+                  child: _CategoryItem(
+                    name: categories[i].name,
+                    selected: selectedCategory == categories[i].name,
+                    size: squareSize,
+                    backgroundColor:
+                        _categoryStyles[i % _categoryStyles.length].bg,
+                    borderColor:
+                        _categoryStyles[i % _categoryStyles.length].border,
+                    onTap: () => onSelectCategory(categories[i].name),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -551,54 +1099,71 @@ class _CategoriesHorizontalList extends StatelessWidget {
 class _CategoryItem extends StatelessWidget {
   const _CategoryItem({
     required this.name,
+    required this.selected,
+    required this.size,
     required this.backgroundColor,
     required this.borderColor,
+    required this.onTap,
   });
 
   final String name;
+  final bool selected;
+  final double size;
   final Color backgroundColor;
   final Color borderColor;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Wadah Persegi Empat Berukuran Lebih Kecil (48x48) dengan Warna Pastel Serasi
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(
-              color: borderColor,
-              width: 1.2,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x08000000),
-                blurRadius: 4,
-                offset: Offset(0, 2),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              key: ValueKey('category-square-$name'),
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: selected ? const Color(0xFFF6E7D4) : borderColor,
+                  width: selected ? 2.4 : 1.2,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 3),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              key: ValueKey('category-label-$name'),
+              name,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                // Sans-serif extra-bold (Plus Jakarta Sans mendukung w800).
+                // Sumber: https://api.flutter.dev/flutter/dart-ui/FontWeight-class.html
+                fontWeight: FontWeight.w800,
+                color: selected
+                    ? const Color(0xFF3A2114)
+                    : const Color(0xFF2B2118),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
-        // Nama Kategori di Bagian Bawah
-        Text(
-          name,
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF2B2118),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

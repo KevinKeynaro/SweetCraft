@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Bottom Navigation Bar statis bergaya artisanal bakery sesuai gambar referensi.
 ///
-/// Memiliki latar putih bersih dengan sudut atas melengkung, 5 menu (Home, Search, Shop, Cart, Profile),
+/// Memiliki latar putih bersih dengan sudut atas melengkung, 5 menu (Home, Search, Pre-Order, Cart, Profile),
 /// dan indikator aktif berupa segi-empat cokelat dengan sudut membulat (rounded edge) yang menonjol ke atas di tab aktif.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
@@ -18,7 +18,7 @@ class AppBottomNav extends StatelessWidget {
   static const _navItems = [
     (icon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.search_rounded, label: 'Search'),
-    (icon: Icons.storefront_outlined, label: 'Shop'),
+    (icon: Icons.add_rounded, label: 'Pre-Order'),
     (icon: Icons.shopping_bag_outlined, label: 'Cart'),
     (icon: Icons.person_outline_rounded, label: 'Profile'),
   ];
@@ -54,7 +54,7 @@ class AppBottomNav extends StatelessWidget {
                 return Expanded(
                   child: InkWell(
                     onTap: () => onItemSelected(index),
-                    splashColor: const Color(0x1A8C4A27),
+                    splashColor: const Color(0x1A3A2114),
                     highlightColor: Colors.transparent,
                     child: SizedBox(
                       height: 64,
@@ -63,39 +63,42 @@ class AppBottomNav extends StatelessWidget {
                               clipBehavior: Clip.none,
                               alignment: Alignment.center,
                               children: [
-                                // Segi-empat cokelat dengan rounded edge menonjol ke atas
+                                // Segi-empat cokelat tua lebih besar dengan rounded edge menonjol ke atas
                                 Positioned(
-                                  top: -16,
+                                  top: -20,
                                   child: Container(
-                                    width: 48,
-                                    height: 48,
+                                    key: const ValueKey(
+                                      'bottom-nav-active-square',
+                                    ),
+                                    width: 62,
+                                    height: 62,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF8C4A27),
-                                      borderRadius: BorderRadius.circular(14),
+                                      color: const Color(0xFF3A2114),
+                                      borderRadius: BorderRadius.circular(18),
                                       boxShadow: const [
                                         BoxShadow(
-                                          color: Color(0x338C4A27),
-                                          blurRadius: 8,
-                                          offset: Offset(0, 4),
+                                          color: Color(0x4D3A2114),
+                                          blurRadius: 12,
+                                          offset: Offset(0, 5),
                                         ),
                                       ],
                                     ),
                                     child: Icon(
                                       item.icon,
                                       color: const Color(0xFFFFFFFF),
-                                      size: 24,
+                                      size: 28,
                                     ),
                                   ),
                                 ),
                                 // Label aktif
                                 Positioned(
-                                  bottom: 6,
+                                  bottom: 4,
                                   child: Text(
                                     item.label,
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF8C4A27),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF3A2114),
                                     ),
                                   ),
                                 ),
@@ -106,16 +109,16 @@ class AppBottomNav extends StatelessWidget {
                               children: [
                                 Icon(
                                   item.icon,
-                                  size: 22,
-                                  color: const Color(0xFF8C847E),
+                                  size: 24,
+                                  color: const Color(0xFF594333),
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
                                   item.label,
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: const Color(0xFF8C847E),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF594333),
                                   ),
                                 ),
                               ],
