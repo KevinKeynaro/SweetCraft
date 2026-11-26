@@ -185,9 +185,14 @@ void main() {
     expect(find.text('Beranda'), findsOneWidget);
     expect(find.text('Produk'), findsOneWidget);
     expect(find.text('Tambah'), findsOneWidget);
+    expect(find.text('Profil'), findsOneWidget);
     expect(find.text('Dashboard Toko'), findsOneWidget);
     expect(find.text('Total Produk'), findsOneWidget);
     expect(find.text('Perlu Di-Restock'), findsOneWidget);
+
+    await tester.tap(find.text('Profil'));
+    await tester.pump();
+    expect(find.text('Keluar'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

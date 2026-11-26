@@ -418,7 +418,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
   @override
   Widget build(BuildContext context) {
     final formContent = SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+      padding: EdgeInsets.fromLTRB(16, widget.embedded ? 28 : 16, 16, 28),
       child: Form(
         key: _formKey,
         child: Column(
@@ -742,9 +742,9 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6EC),
+      backgroundColor: const Color(0xFFF5F3EE), // const Color(0xFFFAF6EC)
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFAF6EC),
+        backgroundColor: const Color(0xFFF5F3EE), // const Color(0xFFFAF6EC)
         foregroundColor: const Color(0xFF3B2A1E),
         elevation: 0,
         title: Text(

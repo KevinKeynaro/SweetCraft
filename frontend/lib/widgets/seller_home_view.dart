@@ -20,7 +20,7 @@ class SellerHomeView extends StatelessWidget {
     required this.onOpenAddTab,
     required this.onAdjustStock,
     required this.onSetManualStock,
-    required this.onOpenProfileDialog,
+    this.onOpenProfileDialog,
   });
 
   final String ownerName;
@@ -35,7 +35,7 @@ class SellerHomeView extends StatelessWidget {
   final Future<void> Function(Map<String, dynamic> cake, int delta) onAdjustStock;
   final Future<void> Function(Map<String, dynamic> cake, int newStock)
       onSetManualStock;
-  final VoidCallback onOpenProfileDialog;
+  final VoidCallback? onOpenProfileDialog;
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +46,9 @@ class SellerHomeView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header Bersih Beranda
+          // Header Bersih Beranda dengan jarak atas nyaman
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -107,30 +107,32 @@ class SellerHomeView extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Material(
-                  color: const Color(0xFFFFFFFF),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: const BorderSide(color: Color(0xFFE8DFD1)),
-                  ),
-                  child: InkWell(
-                    onTap: onOpenProfileDialog,
-                    borderRadius: BorderRadius.circular(14),
-                    child: const Tooltip(
-                      message: 'Profil & Keluar',
-                      child: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: Icon(
-                          Icons.person_outline_rounded,
-                          color: Color(0xFF8B5A2B),
-                          size: 24,
+                if (onOpenProfileDialog != null) ...[
+                  const SizedBox(width: 8),
+                  Material(
+                    color: const Color(0xFFFFFFFF),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: const BorderSide(color: Color(0xFFE8DFD1)),
+                    ),
+                    child: InkWell(
+                      onTap: onOpenProfileDialog,
+                      borderRadius: BorderRadius.circular(14),
+                      child: const Tooltip(
+                        message: 'Profil & Keluar',
+                        child: SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            Icons.person_outline_rounded,
+                            color: Color(0xFF8B5A2B),
+                            size: 24,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

@@ -127,9 +127,9 @@ class _SellerMenuViewState extends State<SellerMenuView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header
+          // Header dengan jarak atas nyaman
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
             child: Row(
               children: [
                 Expanded(

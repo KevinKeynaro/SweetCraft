@@ -276,89 +276,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _openSellerProfileSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFFFFFFFF),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF3EBDD),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.storefront_rounded,
-                        color: Color(0xFF8B5A2B),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.name,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF3B2A1E),
-                            ),
-                          ),
-                          Text(
-                            'Pemilik Toko • ${_isMockMode ? 'Mode Demo (Mock Data)' : 'Terhubung ke API'}',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              color: const Color(0xFF736052),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _confirmLogout();
-                  },
-                  icon: const Icon(Icons.logout_rounded, size: 18),
-                  label: const Text('Keluar dari Akun'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    foregroundColor: const Color(0xFFA63232),
-                    side: const BorderSide(color: Color(0xFFA63232)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    textStyle: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _confirmLogout() async {
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -446,7 +363,6 @@ class _HomePageState extends State<HomePage> {
               onOpenAddTab: () => setState(() => _index = 2),
               onAdjustStock: _adjustCakeStock,
               onSetManualStock: _updateCakeStock,
-              onOpenProfileDialog: _openSellerProfileSheet,
             ),
             SellerMenuView(
               cakes: _sellerCakes,
@@ -474,6 +390,7 @@ class _HomePageState extends State<HomePage> {
                 });
               },
             ),
+            _SellerProfileTab(onLogout: _confirmLogout),
           ]
         : <Widget>[
             CatalogView(userName: widget.name),
@@ -500,8 +417,9 @@ class _HomePageState extends State<HomePage> {
           ];
 
     return Scaffold(
-      backgroundColor:
-          _isSeller ? const Color(0xFFFAF6EC) : const Color(0xFFFDFBF7),
+      backgroundColor: _isSeller
+          ? const Color(0xFFF5F3EE) // const Color(0xFFFAF6EC)
+          : const Color(0xFFFDFBF7),
       body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: _isSeller
           ? NavigationBar(
@@ -555,12 +473,73 @@ class _HomePageState extends State<HomePage> {
                   ),
                   label: 'Tambah',
                 ),
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.person_outline_rounded,
+                    color: Color(0xFF736052),
+                  ),
+                  selectedIcon: Icon(
+                    Icons.person_rounded,
+                    color: Color(0xFF8B5A2B),
+                  ),
+                  label: 'Profil',
+                ),
               ],
             )
           : AppBottomNav(
               selectedIndex: _index,
               onItemSelected: (index) => setState(() => _index = index),
             ),
+    );
+  }
+}
+
+class _SellerProfileTab extends StatelessWidget {
+  const _SellerProfileTab({required this.onLogout});
+
+  final Future<void> Function() onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 28, 16, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Profil',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF3B2A1E),
+              ),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: () {
+                onLogout();
+              },
+              icon: const Icon(Icons.logout_rounded, size: 18),
+              label: const Text('Keluar'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                backgroundColor: const Color(0xFFFFFFFF),
+                foregroundColor: const Color(0xFFA63232),
+                side: const BorderSide(color: Color(0xFFA63232)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                textStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
