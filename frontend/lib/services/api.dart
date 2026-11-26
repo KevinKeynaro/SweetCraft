@@ -104,6 +104,55 @@ class ApiService {
     });
   }
 
+  static Future<dynamic> uploadMultipart(
+    String endpoint, {
+    required Uint8List fileBytes,
+    required String fieldName,
+    required String filename,
+  }) async {
+    final token = await getToken();
+    final uri = Uri.parse('$baseUrl$endpoint');
+    final request = http.MultipartRequest('POST', uri);
+
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.headers['Accept'] = 'application/json';
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        fieldName,
+        fileBytes,
+        filename: filename,
+      ),
+    );
+
+    try {
+      final streamedResponse = await request.send().timeout(_timeout);
+      final response = await http.Response.fromStream(streamedResponse);
+
+      final decoded = _decodeBody(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded is Map<String, dynamic> ? decoded['data'] : null;
+      }
+
+      final body = decoded is Map<String, dynamic> ? decoded : const {};
+      throw ApiException(
+        body['message'] as String? ?? 'Gagal mengunggah file. Coba lagi.',
+        statusCode: response.statusCode,
+        fieldErrors: _readFieldErrors(body['data']),
+      );
+    } on TimeoutException {
+      throw const ApiException(
+        'Koneksi terlalu lama. Periksa internet lalu coba lagi.',
+      );
+    } on http.ClientException {
+      throw const ApiException(
+        'Koneksi terputus. Periksa internet lalu coba lagi.',
+      );
+    }
+  }
+
   static Future<dynamic> _request(Future<http.Response> Function() send) async {
     late final http.Response response;
     try {

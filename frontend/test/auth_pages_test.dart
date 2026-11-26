@@ -173,16 +173,21 @@ void main() {
   });
 
   testWidgets('home penjual menampilkan tab khusus penjual', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       _wrap(const HomePage(name: 'Penjual SweetCraft', role: 'penjual')),
     );
+    await tester.pump(const Duration(seconds: 16));
     await tester.pump();
 
-    expect(find.text('Pesanan'), findsOneWidget);
-    expect(find.text('Profil'), findsOneWidget);
-    expect(
-      find.text('Menu penjual akan tersedia di milestone berikutnya.'),
-      findsOneWidget,
-    );
+    expect(find.text('Beranda'), findsOneWidget);
+    expect(find.text('Produk'), findsOneWidget);
+    expect(find.text('Tambah'), findsOneWidget);
+    expect(find.text('Dashboard Toko'), findsOneWidget);
+    expect(find.text('Total Produk'), findsOneWidget);
+    expect(find.text('Perlu Di-Restock'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

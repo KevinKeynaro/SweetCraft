@@ -23,7 +23,6 @@ class CatalogView extends StatefulWidget {
 
 class _CatalogViewState extends State<CatalogView> {
   List<Map<String, dynamic>> _categories = [];
-  bool _loading = true;
   final _searchController = TextEditingController();
 
   static const _fallbackCategories = [
@@ -47,7 +46,6 @@ class _CatalogViewState extends State<CatalogView> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
     try {
       final results = await ApiService.get('/categories');
       final categoriesPayload = results as Map<String, dynamic>;
@@ -59,11 +57,9 @@ class _CatalogViewState extends State<CatalogView> {
       if (!mounted) return;
       setState(() {
         _categories = categories;
-        _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
     }
   }
 
@@ -231,7 +227,7 @@ class _HeaderSection extends StatelessWidget {
                 ],
               ),
               // Aksi opsional (misal tombol Masuk untuk tamu)
-              if (action != null) action!,
+              ?action,
             ],
           ),
 
@@ -290,10 +286,9 @@ class _HeaderSection extends StatelessWidget {
 
 /// Header baris dengan judul di kiri dan teks "See All" cokelat di kanan
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.onSeeAll});
+  const _SectionHeader({required this.title});
 
   final String title;
-  final VoidCallback? onSeeAll;
 
   @override
   Widget build(BuildContext context) {
@@ -311,7 +306,7 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
         InkWell(
-          onTap: onSeeAll,
+          onTap: null,
           child: Text(
             'See All',
             style: GoogleFonts.plusJakartaSans(
