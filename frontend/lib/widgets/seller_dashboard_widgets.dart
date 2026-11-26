@@ -3,121 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'product_card.dart';
 
-/// 8 produk contoh toko kue untuk mode offline/demo sebelum atau saat backend tidak aktif.
-/// Strukturnya menyamai skema backend `/api/cakes` agar mudah disinkronkan.
-List<Map<String, dynamic>> buildMockBakeryCakes() => [
-      {
-        'id': -1,
-        'category_id': 1,
-        'category': 'Cake',
-        'name': 'Strawberry Fruit Tart',
-        'price': 185000,
-        'stock': 2,
-        'is_custom': false,
-        'description':
-            'Tart renyah dengan krim vanila lembut dan buah stroberi segar pilihan.',
-        'image_url': null,
-        'mock_asset': 'assets/images/Tarts.png',
-      },
-      {
-        'id': -2,
-        'category_id': 3,
-        'category': 'Pastry',
-        'name': 'French Butter Croissant',
-        'price': 28000,
-        'stock': 16,
-        'is_custom': false,
-        'description':
-            'Croissant berlapis renyah menggunakan mentega Prancis autentik.',
-        'image_url': null,
-        'mock_asset': 'assets/images/croissant.png',
-      },
-      {
-        'id': -3,
-        'category_id': 2,
-        'category': 'Cake',
-        'name': 'Vanilla Berry Cupcake',
-        'price': 24000,
-        'stock': 0,
-        'is_custom': false,
-        'description':
-            'Cupcake spons vanila lembut dengan frosting buttercream beri.',
-        'image_url': null,
-        'mock_asset': 'assets/images/cupcake.png',
-      },
-      {
-        'id': -4,
-        'category_id': 4,
-        'category': 'Pastry',
-        'name': 'Artisan Sourdough Loaf',
-        'price': 55000,
-        'stock': 4,
-        'is_custom': false,
-        'description':
-            'Roti fermentasi alami 24 jam dengan kulit renyah dan serat kenyal.',
-        'image_url': null,
-        'mock_asset': 'assets/images/sour-dough.png',
-      },
-      {
-        'id': -5,
-        'category_id': 5,
-        'category': 'Cookies',
-        'name': 'Belgian Choco Chip Cookies',
-        'price': 48000,
-        'stock': 14,
-        'is_custom': false,
-        'description':
-            'Cookies renyah di luar, lumer di dalam dengan cokelat hitam Belgia.',
-        'image_url': null,
-        'mock_asset': 'assets/images/cupcake-icon.png',
-      },
-      {
-        'id': -6,
-        'category_id': 1,
-        'category': 'Cake',
-        'name': 'Classic Tiramisu Box',
-        'price': 135000,
-        'stock': 3,
-        'is_custom': true,
-        'description':
-            'Lapisan ladyfinger espresso dengan krim mascarpone autentik.',
-        'image_url': null,
-        'mock_asset': 'assets/images/Tarts.png',
-      },
-      {
-        'id': -7,
-        'category_id': 5,
-        'category': 'Cookies',
-        'name': 'Matcha Almond Biscotti',
-        'price': 52000,
-        'stock': 0,
-        'is_custom': false,
-        'description':
-            'Biskuit panggang dua kali dengan matcha Uji Jepang dan kacang almond.',
-        'image_url': null,
-        'mock_asset': 'assets/images/artisan-bread-icon.png',
-      },
-      {
-        'id': -8,
-        'category_id': 3,
-        'category': 'Pastry',
-        'name': 'Cinnamon Brioche Roll',
-        'price': 32000,
-        'stock': 12,
-        'is_custom': false,
-        'description':
-            'Roti brioche manis beraroma kayu manis dengan glaze gula halus.',
-        'image_url': null,
-        'mock_asset': 'assets/images/croissant.png',
-      },
-    ];
-
-List<Map<String, dynamic>> buildMockBakeryCategories() => [
-      {'id': 1, 'name': 'Cake'},
-      {'id': 3, 'name': 'Pastry'},
-      {'id': 5, 'name': 'Cookies'},
-    ];
-
 /// Menentukan apakah stok tergolong menipis (1..5).
 bool isLowStock(dynamic stock) => stock is num && stock > 0 && stock <= 5;
 
@@ -272,18 +157,16 @@ class SummaryCard extends StatelessWidget {
   }
 }
 
-/// Thumbnail foto kue yang mendukung URL jaringan, aset mock lokal, maupun placeholder.
+/// Thumbnail foto kue yang mendukung URL jaringan maupun placeholder.
 class BakeryThumbnail extends StatelessWidget {
   const BakeryThumbnail({
     super.key,
     this.imageUrl,
-    this.mockAsset,
     this.size = 76,
     this.radius = 14,
   });
 
   final String? imageUrl;
-  final String? mockAsset;
   final double size;
   final double radius;
 
@@ -294,12 +177,6 @@ class BakeryThumbnail extends StatelessWidget {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       content = Image.network(
         imageUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _fallbackWidget(),
-      );
-    } else if (mockAsset != null && mockAsset!.isNotEmpty) {
-      content = Image.asset(
-        mockAsset!,
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => _fallbackWidget(),
       );
@@ -357,11 +234,11 @@ class SellerProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = cake['name'] as String? ?? 'Kue';
-    final category = cake['category'] as String? ?? 'Lainnya';
+    final categoryLabel = displayCategoryName(cake['category'] as String?);
+    final category = categoryLabel.isEmpty ? 'Lainnya' : categoryLabel;
     final price = cake['price'];
     final stock = cake['stock'];
     final imageUrl = cake['image_url'] as String?;
-    final mockAsset = cake['mock_asset'] as String?;
     final currentStock = stock is num ? stock.toInt() : 0;
 
     return Container(
@@ -384,12 +261,7 @@ class SellerProductCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BakeryThumbnail(
-                imageUrl: imageUrl,
-                mockAsset: mockAsset,
-                size: 76,
-                radius: 12,
-              ),
+              BakeryThumbnail(imageUrl: imageUrl, size: 76, radius: 12),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -518,35 +390,26 @@ class SellerProductCard extends StatelessWidget {
                 ],
               ),
 
-              // Aksi Edit & Hapus (Touch target >= 48dp)
+              // Aksi Edit & Hapus (rounded square, touch target >= 48dp)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    onPressed: onEdit,
+                  _SquareIconButton(
+                    icon: Icons.edit_outlined,
                     tooltip: 'Edit produk',
-                    constraints: const BoxConstraints(
-                      minWidth: 48,
-                      minHeight: 48,
-                    ),
-                    icon: const Icon(
-                      Icons.edit_outlined,
-                      size: 20,
-                      color: Color(0xFF8B5A2B),
-                    ),
+                    color: const Color(0xFF8B5A2B),
+                    backgroundColor: const Color(0xFFF8F1E7),
+                    borderColor: const Color(0xFFE8DFD1),
+                    onPressed: onEdit,
                   ),
-                  IconButton(
-                    onPressed: onDelete,
+                  const SizedBox(width: 6),
+                  _SquareIconButton(
+                    icon: Icons.delete_outline_rounded,
                     tooltip: 'Hapus produk',
-                    constraints: const BoxConstraints(
-                      minWidth: 48,
-                      minHeight: 48,
-                    ),
-                    icon: const Icon(
-                      Icons.delete_outline_rounded,
-                      size: 20,
-                      color: Color(0xFFA63232),
-                    ),
+                    color: const Color(0xFFA63232),
+                    backgroundColor: const Color(0xFFFDF0F0),
+                    borderColor: const Color(0xFFF0D6D6),
+                    onPressed: onDelete,
                   ),
                 ],
               ),
@@ -554,6 +417,44 @@ class SellerProductCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SquareIconButton extends StatelessWidget {
+  const _SquareIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.backgroundColor,
+    required this.borderColor,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final Color backgroundColor;
+  final Color borderColor;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      style: IconButton.styleFrom(
+        backgroundColor: backgroundColor,
+        foregroundColor: color,
+        minimumSize: const Size(48, 48),
+        maximumSize: const Size(48, 48),
+        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: borderColor),
+        ),
+      ),
+      icon: Icon(icon, size: 20),
     );
   }
 }

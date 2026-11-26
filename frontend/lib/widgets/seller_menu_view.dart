@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'product_card.dart';
 import 'seller_dashboard_widgets.dart';
 
 /// Halaman Daftar Produk & Manajemen Stok Pemilik Toko (Tab 1).
@@ -29,9 +30,10 @@ class SellerMenuView extends StatefulWidget {
   final String? error;
   final Set<int> updatingIds;
   final Future<void> Function() onRefresh;
-  final Future<void> Function(Map<String, dynamic> cake, int delta) onAdjustStock;
+  final Future<void> Function(Map<String, dynamic> cake, int delta)
+  onAdjustStock;
   final Future<void> Function(Map<String, dynamic> cake, int newStock)
-      onSetManualStock;
+  onSetManualStock;
   final Future<void> Function(Map<String, dynamic> cake) onEditCake;
   final Future<void> Function(Map<String, dynamic> cake) onDeleteCake;
   final VoidCallback onOpenAddTab;
@@ -70,15 +72,15 @@ class _SellerMenuViewState extends State<SellerMenuView> {
   List<String> _buildCategoryOptions() {
     final set = <String>{'Semua'};
     for (final c in widget.categories) {
-      final name = c['name'] as String?;
-      if (name != null && name.trim().isNotEmpty) {
-        set.add(name.trim());
+      final name = displayCategoryName(c['name'] as String?);
+      if (name.isNotEmpty) {
+        set.add(name);
       }
     }
     for (final cake in widget.cakes) {
-      final cat = cake['category'] as String?;
-      if (cat != null && cat.trim().isNotEmpty) {
-        set.add(cat.trim());
+      final cat = displayCategoryName(cake['category'] as String?);
+      if (cat.isNotEmpty) {
+        set.add(cat);
       }
     }
     return set.toList();
@@ -89,7 +91,7 @@ class _SellerMenuViewState extends State<SellerMenuView> {
     return widget.cakes.where((cake) {
       final name = (cake['name'] as String? ?? '').toLowerCase();
       final desc = (cake['description'] as String? ?? '').toLowerCase();
-      final cat = cake['category'] as String? ?? '';
+      final cat = displayCategoryName(cake['category'] as String?);
       final stock = cake['stock'];
 
       if (q.isNotEmpty && !name.contains(q) && !desc.contains(q)) {
@@ -372,15 +374,15 @@ class _FilterChipButton extends StatelessWidget {
 
     return Material(
       color: selected ? activeBg : const Color(0xFFFFFFFF),
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           constraints: const BoxConstraints(minHeight: 44),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected ? activeBg : const Color(0xFFE8DFD1),
             ),

@@ -16,7 +16,7 @@ class ProductCard extends StatelessWidget {
     final stock = cake['stock'];
     final isOutOfStock = stock is num && stock == 0;
     final name = cake['name'] as String? ?? 'Tanpa nama';
-    final category = cake['category'] as String? ?? '';
+    final category = displayCategoryName(cake['category'] as String?);
     final imageUrl = cake['image_url'] as String?;
 
     final card = Container(
@@ -274,4 +274,11 @@ String formatRupiah(dynamic value) {
   }
 
   return 'Rp$buffer';
+}
+
+/// Menyeragamkan label kategori tampilan UI tanpa mengubah data backend.
+String displayCategoryName(String? name) {
+  final trimmed = (name ?? '').trim();
+  if (trimmed.toLowerCase() == 'artisan bread') return 'Bread';
+  return trimmed;
 }

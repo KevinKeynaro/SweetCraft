@@ -13,7 +13,6 @@ class SellerHomeView extends StatelessWidget {
     required this.cakes,
     required this.loading,
     required this.error,
-    required this.isMockMode,
     required this.updatingIds,
     required this.onRefresh,
     required this.onOpenProductsTab,
@@ -27,14 +26,14 @@ class SellerHomeView extends StatelessWidget {
   final List<Map<String, dynamic>> cakes;
   final bool loading;
   final String? error;
-  final bool isMockMode;
   final Set<int> updatingIds;
   final Future<void> Function() onRefresh;
   final void Function({String stockFilter}) onOpenProductsTab;
   final VoidCallback onOpenAddTab;
-  final Future<void> Function(Map<String, dynamic> cake, int delta) onAdjustStock;
+  final Future<void> Function(Map<String, dynamic> cake, int delta)
+  onAdjustStock;
   final Future<void> Function(Map<String, dynamic> cake, int newStock)
-      onSetManualStock;
+  onSetManualStock;
   final VoidCallback? onOpenProfileDialog;
 
   @override
@@ -48,7 +47,7 @@ class SellerHomeView extends StatelessWidget {
         children: [
           // Header Bersih Beranda dengan jarak atas nyaman
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 40, 16, 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -67,42 +66,15 @@ class SellerHomeView extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              'Dashboard Toko',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF3B2A1E),
-                              ),
-                            ),
-                          ),
-                          if (isMockMode) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                'Demo',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF92400E),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+                      Text(
+                        'Dashboard Toko',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF3B2A1E),
+                        ),
                       ),
                     ],
                   ),
@@ -169,14 +141,15 @@ class SellerHomeView extends StatelessWidget {
     final lowCount = cakes.where((c) => isLowStock(c['stock'])).length;
     final emptyCount = cakes.where((c) => isOutOfStock(c['stock'])).length;
 
-    final restockList = cakes
-        .where((c) => isOutOfStock(c['stock']) || isLowStock(c['stock']))
-        .toList()
-      ..sort((a, b) {
-        final sa = (a['stock'] as num?)?.toInt() ?? 0;
-        final sb = (b['stock'] as num?)?.toInt() ?? 0;
-        return sa.compareTo(sb);
-      });
+    final restockList =
+        cakes
+            .where((c) => isOutOfStock(c['stock']) || isLowStock(c['stock']))
+            .toList()
+          ..sort((a, b) {
+            final sa = (a['stock'] as num?)?.toInt() ?? 0;
+            final sb = (b['stock'] as num?)?.toInt() ?? 0;
+            return sa.compareTo(sb);
+          });
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -355,7 +328,6 @@ class _RestockQuickCard extends StatelessWidget {
     final price = cake['price'];
     final stock = cake['stock'];
     final imageUrl = cake['image_url'] as String?;
-    final mockAsset = cake['mock_asset'] as String?;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -373,12 +345,7 @@ class _RestockQuickCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          BakeryThumbnail(
-            imageUrl: imageUrl,
-            mockAsset: mockAsset,
-            size: 56,
-            radius: 12,
-          ),
+          BakeryThumbnail(imageUrl: imageUrl, size: 56, radius: 12),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

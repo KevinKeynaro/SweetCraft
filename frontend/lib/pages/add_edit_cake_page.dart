@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../services/api.dart';
-import '../widgets/seller_dashboard_widgets.dart';
+import '../widgets/image_picker_field.dart';
+import '../widgets/product_card.dart';
 
 /// Halaman/Tab form untuk menambah atau mengedit produk kue/pastry oleh pemilik toko.
 /// Mendukung mode `embedded: true` (sebagai Tab "Tambah") dan modal full-page untuk Edit.
@@ -14,7 +14,6 @@ class AddEditCakePage extends StatefulWidget {
     this.cake,
     this.embedded = false,
     this.initialCategories = const [],
-    this.isMockMode = false,
     this.onSaved,
   });
 
@@ -27,10 +26,7 @@ class AddEditCakePage extends StatefulWidget {
   /// Daftar kategori awal dari HomePage agar dropdown langsung siap tampil.
   final List<Map<String, dynamic>> initialCategories;
 
-  /// Jika true, mutasi disimpan secara lokal ke daftar mock tanpa gagal jaringan.
-  final bool isMockMode;
-
-  /// Callback setelah berhasil menyimpan produk (mengembalikan objek produk hasil API/lokal).
+  /// Callback setelah berhasil menyimpan produk (mengembalikan objek produk hasil API).
   final ValueChanged<Map<String, dynamic>>? onSaved;
 
   @override
@@ -46,7 +42,6 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
 
   List<Map<String, dynamic>> _categories = [];
   int? _selectedCategoryId;
-  bool _isCustom = false;
   bool _loadingCategories = true;
   bool _saving = false;
 
@@ -63,6 +58,22 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
     _loadCategories();
   }
 
+  @override
+  void didUpdateWidget(covariant AddEditCakePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialCategories != oldWidget.initialCategories &&
+        widget.initialCategories.isNotEmpty) {
+      setState(() {
+        _categories = List<Map<String, dynamic>>.from(widget.initialCategories);
+        _loadingCategories = false;
+        final exists = _categories.any((c) => c['id'] == _selectedCategoryId);
+        if (!exists) {
+          _selectedCategoryId = _categories.first['id'] as int?;
+        }
+      });
+    }
+  }
+
   void _initData() {
     final c = widget.cake;
     if (c != null) {
@@ -71,7 +82,6 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
       _stockController.text = (c['stock'] ?? '').toString();
       _descriptionController.text = c['description'] as String? ?? '';
       _selectedCategoryId = c['category_id'] as int?;
-      _isCustom = c['is_custom'] == true || c['is_custom'] == 1;
       _existingImageUrl = c['image_url'] as String?;
     }
   }
@@ -90,14 +100,6 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
       _categories = List<Map<String, dynamic>>.from(widget.initialCategories);
       _selectedCategoryId ??= _categories.first['id'] as int?;
       _loadingCategories = false;
-    }
-
-    if (widget.isMockMode) {
-      if (_categories.isEmpty) {
-        _categories = buildMockBakeryCategories();
-        _selectedCategoryId ??= _categories.first['id'] as int?;
-      }
-      if (mounted) setState(() => _loadingCategories = false);
       return;
     }
 
@@ -123,155 +125,26 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        if (_categories.isEmpty) {
-          _categories = buildMockBakeryCategories();
+        if (_categories.isNotEmpty) {
+          _selectedCategoryId ??= _categories.first['id'] as int?;
         }
-        _selectedCategoryId ??= _categories.first['id'] as int?;
         _loadingCategories = false;
       });
     }
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(
-        source: source,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
-      );
-
-      if (picked != null) {
-        final bytes = await picked.readAsBytes();
-        if (!mounted) return;
-        setState(() {
-          _imageBytes = bytes;
-          _imageFilename = picked.name;
-        });
-      }
-    } on PlatformException catch (e) {
-      if (!mounted) return;
-      final isDenied =
-          e.code.contains('denied') || e.code.contains('permission');
-      if (isDenied) {
-        _showPermissionDeniedDialog(source);
-      } else {
-        _showErrorSnackBar(
-          'Gagal membuka ${source == ImageSource.camera ? 'kamera' : 'galeri'}: ${e.message ?? e.code}',
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _showErrorSnackBar('Gagal memilih gambar: $e');
-    }
-  }
-
-  void _showPermissionDeniedDialog(ImageSource source) {
-    final target = source == ImageSource.camera ? 'Kamera' : 'Galeri / Foto';
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFFFFFFFF),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          'Izin $target Ditolak',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF3B2A1E),
-          ),
-        ),
-        content: Text(
-          'SweetCraft memerlukan izin akses $target untuk mengambil foto produk kue. '
-          'Silakan aktifkan izin $target pada Pengaturan perangkat Anda.',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 14,
-            height: 21 / 14,
-            color: const Color(0xFF736052),
-          ),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(90, 48),
-              backgroundColor: const Color(0xFF8B5A2B),
-              foregroundColor: const Color(0xFFFFFFFF),
-            ),
-            child: const Text('Mengerti'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showImageSourcePicker() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFFFFFFFF),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Pilih Foto Produk',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF3B2A1E),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ListTile(
-                  minVerticalPadding: 14,
-                  leading: const Icon(
-                    Icons.photo_library_outlined,
-                    color: Color(0xFF8B5A2B),
-                  ),
-                  title: Text(
-                    'Pilih dari Galeri',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF3B2A1E),
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-                ListTile(
-                  minVerticalPadding: 14,
-                  leading: const Icon(
-                    Icons.camera_alt_outlined,
-                    color: Color(0xFF8B5A2B),
-                  ),
-                  title: Text(
-                    'Ambil Foto Kamera',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF3B2A1E),
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _pickImage(ImageSource.camera);
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
+    showImageSourcePickerSheet(
+      context,
+      title: 'Pilih Foto Produk',
+      permissionTargetLabel: 'foto produk kue',
+      onPicked: (picked) {
+        setState(() {
+          _imageBytes = picked.bytes;
+          _imageFilename = picked.filename;
+        });
       },
+      onError: _showErrorSnackBar,
     );
   }
 
@@ -291,7 +164,6 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
     _stockController.clear();
     _descriptionController.clear();
     setState(() {
-      _isCustom = false;
       _imageBytes = null;
       _imageFilename = null;
       _existingImageUrl = null;
@@ -311,10 +183,6 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
     final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
     final stockText = _stockController.text.trim();
     final stock = stockText.isEmpty ? null : int.tryParse(stockText);
-    final selectedCat = _categories.firstWhere(
-      (c) => c['id'] == _selectedCategoryId,
-      orElse: () => {'id': _selectedCategoryId, 'name': 'Cake'},
-    );
 
     setState(() => _saving = true);
 
@@ -323,7 +191,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
         'category_id': _selectedCategoryId,
         'name': _nameController.text.trim(),
         'price': price,
-        'is_custom': _isCustom,
+        'is_custom': false,
         'stock': stock,
         'description': _descriptionController.text.trim().isEmpty
             ? null
@@ -331,56 +199,49 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
       };
 
       Map<String, dynamic> savedCake;
+      int cakeId;
 
-      if (widget.isMockMode || (_isEditing && (widget.cake?['id'] as int? ?? 0) < 0)) {
-        savedCake = {
-          ...?widget.cake,
-          ...payload,
-          'id': widget.cake?['id'] ?? -DateTime.now().millisecondsSinceEpoch,
-          'category': selectedCat['name'] ?? 'Cake',
-          'mock_asset': widget.cake?['mock_asset'] ?? 'assets/images/Tarts.png',
-        };
+      if (_isEditing) {
+        cakeId = widget.cake!['id'] as int;
+        final res = await ApiService.put('/cakes/$cakeId', payload);
+        savedCake =
+            ((res as Map<String, dynamic>?)?['cake']
+                as Map<String, dynamic>?) ??
+            {...widget.cake!, ...payload};
       } else {
-        int cakeId;
-        if (_isEditing) {
-          cakeId = widget.cake!['id'] as int;
-          final res = await ApiService.put('/cakes/$cakeId', payload);
-          savedCake = ((res as Map<String, dynamic>?)?['cake']
-                  as Map<String, dynamic>?) ??
-              {...widget.cake!, ...payload};
-        } else {
-          final res = await ApiService.post('/cakes', payload);
-          savedCake = ((res as Map<String, dynamic>?)?['cake']
-                  as Map<String, dynamic>?) ??
-              payload;
-          cakeId = savedCake['id'] as int? ?? 0;
-        }
+        final res = await ApiService.post('/cakes', payload);
+        savedCake =
+            ((res as Map<String, dynamic>?)?['cake']
+                as Map<String, dynamic>?) ??
+            payload;
+        cakeId = savedCake['id'] as int? ?? 0;
+      }
 
-        // Upload foto via multipart jika penjual memilih foto baru
-        if (_imageBytes != null && cakeId > 0) {
-          try {
-            final uploadRes = await ApiService.uploadMultipart(
-              '/cakes/$cakeId/image',
-              fileBytes: _imageBytes!,
-              fieldName: 'image',
-              filename: _imageFilename ?? 'cake_$cakeId.jpg',
-            );
-            final updatedWithImage = (uploadRes as Map<String, dynamic>?)?['cake']
-                as Map<String, dynamic>?;
-            if (updatedWithImage != null) {
-              savedCake = updatedWithImage;
-            }
-          } catch (uploadError) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Produk tersimpan, namun foto gagal diunggah: $uploadError',
-                  ),
-                  backgroundColor: const Color(0xFFB45309),
+      // Upload foto via multipart jika penjual memilih foto baru
+      if (_imageBytes != null && cakeId > 0) {
+        try {
+          final uploadRes = await ApiService.uploadMultipart(
+            '/cakes/$cakeId/image',
+            fileBytes: _imageBytes!,
+            fieldName: 'image',
+            filename: _imageFilename ?? 'cake_$cakeId.jpg',
+          );
+          final updatedWithImage =
+              (uploadRes as Map<String, dynamic>?)?['cake']
+                  as Map<String, dynamic>?;
+          if (updatedWithImage != null) {
+            savedCake = updatedWithImage;
+          }
+        } catch (uploadError) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Produk tersimpan, namun foto gagal diunggah: $uploadError',
                 ),
-              );
-            }
+                backgroundColor: const Color(0xFFB45309),
+              ),
+            );
           }
         }
       }
@@ -417,6 +278,10 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Batasi input mengikuti schema backend: nama <= 150 karakter,
+    // deskripsi <= 5000 karakter, serta harga/stok hanya digit.
+    // Sumber: https://api.flutter.dev/flutter/services/FilteringTextInputFormatter-class.html
+    // Sumber: https://api.flutter.dev/flutter/services/LengthLimitingTextInputFormatter-class.html
     final formContent = SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(16, widget.embedded ? 28 : 16, 16, 28),
       child: Form(
@@ -445,47 +310,14 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
             ],
 
             // 1. Pemilihan Foto Produk
-            GestureDetector(
-              onTap: _saving ? null : _showImageSourcePicker,
-              child: Container(
-                height: 170,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFE8DFD1),
-                    width: 1.5,
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: _buildImagePreview(),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Center(
-              child: TextButton.icon(
-                onPressed: _saving ? null : _showImageSourcePicker,
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                ),
-                icon: const Icon(
-                  Icons.add_a_photo_outlined,
-                  size: 18,
-                  color: Color(0xFF8B5A2B),
-                ),
-                label: Text(
-                  _imageBytes != null ||
-                          (_existingImageUrl != null &&
-                              _existingImageUrl!.isNotEmpty)
-                      ? 'Ganti Foto Produk'
-                      : 'Pilih Foto Produk',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF8B5A2B),
-                  ),
-                ),
-              ),
+            ImagePickerCard(
+              imageBytes: _imageBytes,
+              existingImageUrl: _existingImageUrl,
+              disabled: _saving,
+              placeholderText: 'Ketuk untuk memilih foto kue',
+              selectLabel: 'Pilih Foto Produk',
+              replaceLabel: 'Ganti Foto Produk',
+              onTapPick: _showImageSourcePicker,
             ),
 
             const SizedBox(height: 14),
@@ -495,6 +327,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _nameController,
+              inputFormatters: [LengthLimitingTextInputFormatter(150)],
               decoration: _inputDecoration('Contoh: Strawberry Fruit Tart'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
@@ -543,10 +376,13 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                           color: Color(0xFF8B5A2B),
                         ),
                         items: _categories.map((cat) {
+                          final catLabel = displayCategoryName(
+                            cat['name'] as String?,
+                          );
                           return DropdownMenuItem<int>(
                             value: cat['id'] as int,
                             child: Text(
-                              cat['name'] as String? ?? 'Kategori',
+                              catLabel.isEmpty ? 'Kategori' : catLabel,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 color: const Color(0xFF3B2A1E),
@@ -557,7 +393,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                         onChanged: _saving
                             ? null
                             : (newVal) =>
-                                setState(() => _selectedCategoryId = newVal),
+                                  setState(() => _selectedCategoryId = newVal),
                       ),
                     ),
                   ),
@@ -577,6 +413,10 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                       TextFormField(
                         controller: _priceController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(12),
+                        ],
                         decoration: _inputDecoration('45000').copyWith(
                           prefixText: 'Rp ',
                           prefixStyle: GoogleFonts.plusJakartaSans(
@@ -594,7 +434,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                           }
                           final numVal = double.tryParse(val.trim());
                           if (numVal == null || numVal <= 0) {
-                            return 'Masukkan harga > 0';
+                            return 'Minimal lebih dari 0';
                           }
                           return null;
                         },
@@ -612,6 +452,10 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                       TextFormField(
                         controller: _stockController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(9),
+                        ],
                         decoration: _inputDecoration('10'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
@@ -619,7 +463,6 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
-                            if (_isCustom) return null;
                             return 'Stok wajib diisi';
                           }
                           final intVal = int.tryParse(val.trim());
@@ -644,57 +487,13 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
               controller: _descriptionController,
               minLines: 3,
               maxLines: 5,
+              inputFormatters: [LengthLimitingTextInputFormatter(5000)],
               decoration: _inputDecoration(
                 'Ceritakan bahan, rasa, atau catatan penyajian kue...',
               ),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 color: const Color(0xFF3B2A1E),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // 6. Switch Pre-Order / Custom
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE8DFD1)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Produk Custom / Pre-Order',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF3B2A1E),
-                          ),
-                        ),
-                        Text(
-                          'Stok opsional jika dibuat berdasarkan pesanan',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            color: const Color(0xFF736052),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Switch(
-                    value: _isCustom,
-                    activeThumbColor: const Color(0xFF8B5A2B),
-                    onChanged: _saving
-                        ? null
-                        : (val) => setState(() => _isCustom = val),
-                  ),
-                ],
               ),
             ),
 
@@ -725,9 +524,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
                         color: Color(0xFFFFFFFF),
                       ),
                     )
-                  : Text(
-                      _isEditing ? 'Simpan Perubahan' : 'Simpan Produk',
-                    ),
+                  : Text(_isEditing ? 'Simpan Perubahan' : 'Simpan Produk'),
             ),
           ],
         ),
@@ -735,10 +532,7 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
     );
 
     if (widget.embedded) {
-      return SafeArea(
-        bottom: false,
-        child: formContent,
-      );
+      return SafeArea(bottom: false, child: formContent);
     }
 
     return Scaffold(
@@ -800,57 +594,6 @@ class _AddEditCakePageState extends State<AddEditCakePage> {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Color(0xFFA63232), width: 1.5),
       ),
-    );
-  }
-
-  Widget _buildImagePreview() {
-    if (_imageBytes != null) {
-      return Image.memory(
-        _imageBytes!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-      );
-    }
-
-    if (_existingImageUrl != null && _existingImageUrl!.isNotEmpty) {
-      return Image.network(
-        _existingImageUrl!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        errorBuilder: (_, _, _) => _buildPlaceholder(),
-      );
-    }
-
-    return _buildPlaceholder();
-  }
-
-  Widget _buildPlaceholder() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(
-          Icons.add_photo_alternate_outlined,
-          size: 44,
-          color: Color(0xFF8B5A2B),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Ketuk untuk memilih foto kue',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF8B5A2B),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          'Format JPG, PNG, atau WEBP maks 2 MB',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 11,
-            color: const Color(0xFF736052),
-          ),
-        ),
-      ],
     );
   }
 }
