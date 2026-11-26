@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { ok, fail } = require('../utils/response');
+const { uploadImageBuffer } = require('../utils/uploadImage');
 
 const SELECT_ORDER = `SELECT o.id, o.user_id, u.name AS buyer_name, o.cake_id, c.name AS cake_name,
   o.order_type, o.custom_image_url, o.custom_description, o.decoration_note,
@@ -131,4 +132,29 @@ async function updatePrice(req, res) {
   return ok(res, 200, 'Harga final disimpan', { order: await findOrder(order.id) });
 }
 
-module.exports = { createOrder, listOrders, getOrder, updateStatus, updatePrice };
+async function uploadCustomOrderImage(req, res) {
+  if (!req.file) {
+    return fail(res, 400, 'File gambar wajib dikirim pada field "image"');
+  }
+
+  let result;
+  try {
+    result = await uploadImageBuffer(req.file.buffer, 'sweetcraft/orders');
+  } catch (err) {
+    console.error('Cloudinary upload gagal:', err.message || err);
+    return fail(res, 502, 'Gagal mengunggah gambar ke Cloudinary');
+  }
+
+  return ok(res, 200, 'Foto referensi berhasil diunggah', {
+    image_url: result.secure_url,
+  });
+}
+
+module.exports = {
+  createOrder,
+  listOrders,
+  getOrder,
+  updateStatus,
+  updatePrice,
+  uploadCustomOrderImage,
+};

@@ -1,6 +1,6 @@
 const pool = require('../config/db');
-const cloudinary = require('../config/cloudinary');
 const { ok, fail } = require('../utils/response');
+const { uploadImageBuffer } = require('../utils/uploadImage');
 
 // Kolom yang boleh diubah lewat PUT (whitelist — mencegah injeksi nama kolom)
 const UPDATABLE = ['category_id', 'name', 'price', 'is_custom', 'stock', 'description', 'image_url'];
@@ -69,17 +69,6 @@ async function deleteCake(req, res) {
   return ok(res, 200, 'Kue berhasil dihapus');
 }
 
-// Upload buffer ke Cloudinary via upload_stream (dokumentasi resmi: method ini
-// mengembalikan stream, dibungkus Promise agar bisa di-await + .end(buffer)).
-// Source: https://cloudinary.com/documentation/node_image_and_video_upload#the_code_upload_stream_code_method
-function uploadBuffer(buffer, options) {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream(options, (error, result) => (error ? reject(error) : resolve(result)))
-      .end(buffer);
-  });
-}
-
 async function uploadCakeImage(req, res) {
   const id = Number(req.params.id);
 
@@ -92,10 +81,7 @@ async function uploadCakeImage(req, res) {
 
   let result;
   try {
-    result = await uploadBuffer(req.file.buffer, {
-      folder: 'sweetcraft/cakes',
-      resource_type: 'image',
-    });
+    result = await uploadImageBuffer(req.file.buffer, 'sweetcraft/cakes');
   } catch (err) {
     console.error('Cloudinary upload gagal:', err.message || err);
     return fail(res, 502, 'Gagal mengunggah gambar ke Cloudinary');
