@@ -113,6 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF8C4A27),
               minimumSize: const Size(48, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               textStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -131,56 +132,75 @@ class _RegisterPageState extends State<RegisterPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AppTextField(
-              label: 'Nama lengkap',
+              semanticLabel: 'Nama lengkap',
               hint: 'cth. Siti Rahmawati',
               controller: _nameController,
               keyboardType: TextInputType.name,
               textInputAction: TextInputAction.next,
               textCapitalization: TextCapitalization.words,
               autofillHints: const [AutofillHints.name],
+              prefixIcon: const Icon(
+                Icons.person_outline_rounded,
+                size: 20,
+                color: Color(0xFF6B7280),
+              ),
               validator: (value) =>
                   _serverErrors['name'] ?? _validateName(value),
               onChanged: (_) => _clearServerError('name'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             AppTextField(
-              label: 'Email',
+              semanticLabel: 'Email',
               hint: 'nama@email.com',
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],
+              prefixIcon: const Icon(
+                Icons.mail_outline_rounded,
+                size: 20,
+                color: Color(0xFF6B7280),
+              ),
               validator: (value) =>
                   _serverErrors['email'] ?? _validateEmail(value),
               onChanged: (_) => _clearServerError('email'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             AppTextField(
-              label: 'Nomor HP (opsional)',
+              semanticLabel: 'Nomor HP (opsional)',
               hint: '08xxxxxxxxxx',
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.telephoneNumber],
+              prefixIcon: const Icon(
+                Icons.phone_outlined,
+                size: 20,
+                color: Color(0xFF6B7280),
+              ),
               validator: (value) =>
                   _serverErrors['phone'] ?? _validatePhone(value),
               onChanged: (_) => _clearServerError('phone'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             AppTextField(
-              label: 'Password',
+              semanticLabel: 'Password',
               hint: 'Minimal 6 karakter',
-              helperText: 'Minimal 6 karakter.',
               controller: _passwordController,
               isPassword: true,
               textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.newPassword],
+              prefixIcon: const Icon(
+                Icons.lock_outline_rounded,
+                size: 20,
+                color: Color(0xFF6B7280),
+              ),
               validator: (value) =>
                   _serverErrors['password'] ?? _validateRegisterPassword(value),
               onChanged: (_) => _clearServerError('password'),
               onFieldSubmitted: (_) => _submit(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 40),
             AppButton(
               label: 'Daftar',
               onPressed: _submit,

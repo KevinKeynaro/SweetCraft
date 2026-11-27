@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:mime/mime.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Error API dengan pesan siap tampil dan error per-field dari backend.
@@ -102,6 +103,64 @@ class ApiService {
         headers: await _headers(),
       );
     });
+  }
+
+  static Future<dynamic> uploadMultipart(
+    String endpoint, {
+    required Uint8List fileBytes,
+    required String fieldName,
+    required String filename,
+  }) async {
+    final token = await getToken();
+    final uri = Uri.parse('$baseUrl$endpoint');
+    final request = http.MultipartRequest('POST', uri);
+
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.headers['Accept'] = 'application/json';
+
+    // MultipartFile.fromBytes default contentType adalah application/octet-stream,
+    // jadi deteksi MIME asli agar backend bisa menerima semua format gambar.
+    // Sumber: https://pub.dev/documentation/http/latest/http/MultipartFile/MultipartFile.fromBytes.html
+    // Sumber: https://pub.dev/documentation/mime/latest/mime/lookupMimeType.html
+    final contentType =
+        lookupMimeType(filename, headerBytes: fileBytes) ??
+        'application/octet-stream';
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        fieldName,
+        fileBytes,
+        filename: filename,
+        contentType: http.MediaType.parse(contentType),
+      ),
+    );
+
+    try {
+      final streamedResponse = await request.send().timeout(_timeout);
+      final response = await http.Response.fromStream(streamedResponse);
+
+      final decoded = _decodeBody(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded is Map<String, dynamic> ? decoded['data'] : null;
+      }
+
+      final body = decoded is Map<String, dynamic> ? decoded : const {};
+      throw ApiException(
+        body['message'] as String? ?? 'Gagal mengunggah file. Coba lagi.',
+        statusCode: response.statusCode,
+        fieldErrors: _readFieldErrors(body['data']),
+      );
+    } on TimeoutException {
+      throw const ApiException(
+        'Koneksi terlalu lama. Periksa internet lalu coba lagi.',
+      );
+    } on http.ClientException {
+      throw const ApiException(
+        'Koneksi terputus. Periksa internet lalu coba lagi.',
+      );
+    }
   }
 
   static Future<dynamic> _request(Future<http.Response> Function() send) async {

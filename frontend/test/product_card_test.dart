@@ -16,6 +16,12 @@ void main() {
     expect(stockLabel(10), 'Tersedia');
   });
 
+  test('displayCategoryName mengubah Artisan Bread menjadi Bread', () {
+    expect(displayCategoryName('Artisan Bread'), 'Bread');
+    expect(displayCategoryName('artisan bread'), 'Bread');
+    expect(displayCategoryName('Pastry'), 'Pastry');
+  });
+
   testWidgets('ProductCard menampilkan nama, kategori, harga, dan stok', (
     tester,
   ) async {

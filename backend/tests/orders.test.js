@@ -3,11 +3,35 @@ const assert = require('node:assert/strict');
 const { api, login, db } = require('./helper');
 
 const TEMP_EMAIL = 'test.order@example.com';
+const TEMP_EMAIL_2 = 'test.order.other@example.com';
 let tp;
 let tb;
 let pool;
 let cakeId;
 const orderIds = [];
+const cakeIds = [];
+
+async function makeCake(name, stock) {
+  const res = await api('POST', '/api/cakes', {
+    token: tp,
+    body: { category_id: 1, name, price: 50000, stock },
+  });
+  assert.equal(res.status, 201);
+  const id = res.json.data.cake.id;
+  cakeIds.push(id);
+  return id;
+}
+
+async function makeOrder(body, token = tb) {
+  const res = await api('POST', '/api/orders', { token, body });
+  assert.equal(res.status, 201);
+  orderIds.push(res.json.data.order.id);
+  return res.json.data.order;
+}
+
+async function stockOf(id) {
+  return (await api('GET', `/api/cakes/${id}`)).json.data.cake.stock;
+}
 
 before(async () => {
   tp = await login('penjual@example.com', 'penjual123');
@@ -24,8 +48,9 @@ before(async () => {
 
 after(async () => {
   for (const id of orderIds) await pool.query('DELETE FROM orders WHERE id = ?', [id]);
+  for (const id of cakeIds) await pool.query('DELETE FROM cakes WHERE id = ?', [id]);
   if (cakeId) await pool.query('DELETE FROM cakes WHERE id = ?', [cakeId]);
-  await pool.query('DELETE FROM users WHERE email = ?', [TEMP_EMAIL]);
+  await pool.query('DELETE FROM users WHERE email IN (?, ?)', [TEMP_EMAIL, TEMP_EMAIL_2]);
   await pool.end();
 });
 
@@ -190,6 +215,196 @@ test('transisi status dibatasi', async () => {
     })).status,
     400
   );
+});
+
+test('pembeli membatalkan ready-stock pending: stok kembali sekali', async () => {
+  const id = await makeCake('Kue Batal Pending', 3);
+  const order = await makeOrder({ order_type: 'ready_stock', cake_id: id });
+  assert.equal(await stockOf(id), 2);
+
+  const res = await api('POST', `/api/orders/${order.id}/cancel`, { token: tb });
+  assert.equal(res.status, 200);
+  assert.equal(res.json.data.order.status, 'cancelled');
+  assert.equal(await stockOf(id), 3);
+
+  // Pembatalan kedua tidak boleh menambah stok lagi.
+  assert.equal(
+    (await api('POST', `/api/orders/${order.id}/cancel`, { token: tb })).status,
+    400
+  );
+  assert.equal(await stockOf(id), 3);
+});
+
+test('pembeli membatalkan ready-stock approved dalam 60 menit', async () => {
+  const id = await makeCake('Kue Batal Approved', 2);
+  const order = await makeOrder({ order_type: 'ready_stock', cake_id: id });
+  assert.equal(
+    (await api('PUT', `/api/orders/${order.id}/status`, {
+      token: tp, body: { status: 'approved' },
+    })).status,
+    200
+  );
+  assert.equal(await stockOf(id), 1);
+
+  const res = await api('POST', `/api/orders/${order.id}/cancel`, { token: tb });
+  assert.equal(res.status, 200);
+  assert.equal(res.json.data.order.status, 'cancelled');
+  assert.equal(await stockOf(id), 2);
+});
+
+test('pembatalan ready-stock lewat 60 menit ditolak', async () => {
+  const id = await makeCake('Kue Batal Kedaluwarsa', 2);
+  const order = await makeOrder({ order_type: 'ready_stock', cake_id: id });
+  await pool.query(
+    'UPDATE orders SET created_at = NOW() - INTERVAL 2 HOUR WHERE id = ?',
+    [order.id]
+  );
+
+  const res = await api('POST', `/api/orders/${order.id}/cancel`, { token: tb });
+  assert.equal(res.status, 400);
+  assert.equal(await stockOf(id), 1);
+  assert.equal(
+    (await api('GET', `/api/orders/${order.id}`, { token: tb })).json.data.order.status,
+    'pending'
+  );
+});
+
+test('pembeli tidak bisa membatalkan pesanan milik pembeli lain', async () => {
+  await api('POST', '/api/auth/register', {
+    body: { name: 'Test Order Other', email: TEMP_EMAIL_2, password: 'rahasia123' },
+  });
+  const other = await api('POST', '/api/auth/login', {
+    body: { email: TEMP_EMAIL_2, password: 'rahasia123' },
+  });
+  const tb2 = other.json.data.token;
+
+  const id = await makeCake('Kue Batal Milik Orang', 2);
+  const order = await makeOrder({ order_type: 'ready_stock', cake_id: id });
+
+  assert.equal(
+    (await api('POST', `/api/orders/${order.id}/cancel`, { token: tb2 })).status,
+    403
+  );
+  assert.equal(await stockOf(id), 1);
+});
+
+test('pre-order custom: penjual menetapkan harga, pembeli memutuskan', async () => {
+  const order = await makeOrder({
+    order_type: 'custom',
+    custom_description: 'Kue pernikahan tiga tingkat rasa vanila',
+  });
+
+  // Keputusan sebelum ada harga final ditolak.
+  assert.equal(
+    (await api('PUT', `/api/orders/${order.id}/decision`, {
+      token: tb, body: { status: 'approved' },
+    })).status,
+    400
+  );
+
+  assert.equal(
+    (await api('PUT', `/api/orders/${order.id}/price`, {
+      token: tp, body: { agreed_price: 275000 },
+    })).status,
+    200
+  );
+
+  // Penjual tidak boleh menyetujui pre-order custom.
+  assert.equal(
+    (await api('PUT', `/api/orders/${order.id}/status`, {
+      token: tp, body: { status: 'approved' },
+    })).status,
+    400
+  );
+
+  // Penjual tidak boleh memulai produksi sebelum pembeli setuju.
+  assert.equal(
+    (await api('PUT', `/api/orders/${order.id}/status`, {
+      token: tp, body: { status: 'processing' },
+    })).status,
+    400
+  );
+
+  const approved = await api('PUT', `/api/orders/${order.id}/decision`, {
+    token: tb, body: { status: 'approved' },
+  });
+  assert.equal(approved.status, 200);
+  assert.equal(approved.json.data.order.status, 'approved');
+
+  // Harga terkunci setelah keputusan pembeli.
+  assert.equal(
+    (await api('PUT', `/api/orders/${order.id}/price`, {
+      token: tp, body: { agreed_price: 1 },
+    })).status,
+    400
+  );
+
+  // Setelah disetujui, pre-order tidak bisa dibatalkan pembeli.
+  assert.equal(
+    (await api('POST', `/api/orders/${order.id}/cancel`, { token: tb })).status,
+    400
+  );
+
+  assert.equal(
+    (await api('PUT', `/api/orders/${order.id}/status`, {
+      token: tp, body: { status: 'processing' },
+    })).status,
+    200
+  );
+});
+
+test('pre-order custom: pembeli menolak harga, penjual tidak bisa memutuskan', async () => {
+  const order = await makeOrder({
+    order_type: 'custom',
+    custom_description: 'Kue ulang tahun tema dinosaurus',
+  });
+  await api('PUT', `/api/orders/${order.id}/price`, {
+    token: tp, body: { agreed_price: 150000 },
+  });
+
+  assert.equal(
+    (await api('PUT', `/api/orders/${order.id}/decision`, {
+      token: tp, body: { status: 'rejected' },
+    })).status,
+    403
+  );
+
+  const rejected = await api('PUT', `/api/orders/${order.id}/decision`, {
+    token: tb, body: { status: 'rejected' },
+  });
+  assert.equal(rejected.status, 200);
+  assert.equal(rejected.json.data.order.status, 'rejected');
+
+  // Keputusan hanya sekali.
+  assert.equal(
+    (await api('PUT', `/api/orders/${order.id}/decision`, {
+      token: tb, body: { status: 'approved' },
+    })).status,
+    400
+  );
+});
+
+test('pre-order custom pending boleh dibatalkan pembeli', async () => {
+  const order = await makeOrder({
+    order_type: 'custom',
+    custom_description: 'Kue tart buah untuk acara kantor',
+  });
+  const res = await api('POST', `/api/orders/${order.id}/cancel`, { token: tb });
+  assert.equal(res.status, 200);
+  assert.equal(res.json.data.order.status, 'cancelled');
+});
+
+test('penjual menolak ready-stock mengembalikan stok', async () => {
+  const id = await makeCake('Kue Tolak Penjual', 2);
+  const order = await makeOrder({ order_type: 'ready_stock', cake_id: id });
+  assert.equal(await stockOf(id), 1);
+
+  const res = await api('PUT', `/api/orders/${order.id}/status`, {
+    token: tp, body: { status: 'rejected' },
+  });
+  assert.equal(res.status, 200);
+  assert.equal(res.json.data.order.status, 'rejected');
+  assert.equal(await stockOf(id), 2);
 });
 
 test('harga final hanya untuk pesanan custom', async () => {

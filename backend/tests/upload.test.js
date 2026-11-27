@@ -23,6 +23,7 @@ let tb;
 let pool;
 let cakeId;
 let imageUrl;
+let extraImageUrl;
 
 const imageForm = (buffer, type, filename) => {
   const fd = new FormData();
@@ -43,8 +44,9 @@ before(async () => {
 });
 
 after(async () => {
-  if (imageUrl) {
-    const m = imageUrl.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-z0-9]+$/i);
+  for (const url of [imageUrl, extraImageUrl]) {
+    if (!url) continue;
+    const m = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-z0-9]+$/i);
     if (m) await cloudinary.uploader.destroy(m[1], { invalidate: true });
   }
   if (cakeId) await pool.query('DELETE FROM cakes WHERE id = ?', [cakeId]);
@@ -69,6 +71,18 @@ test('guard & validasi file', async () => {
     })).status,
     400
   );
+  // Tipe gambar di luar JPG/PNG/WEBP tidak boleh ditolak oleh fileFilter.
+  // 502 diterima saat kredensial Cloudinary belum tersedia.
+  const gifRes = await api('POST', url, {
+    token: tp, form: imageForm(PNG_1PX, 'image/gif', 'a.gif'),
+  });
+  assert.ok(
+    [200, 502].includes(gifRes.status),
+    `image/gif ditolak fileFilter (status ${gifRes.status})`
+  );
+  if (gifRes.status === 200) {
+    extraImageUrl = gifRes.json?.data?.cake?.image_url;
+  }
   assert.equal(
     (await api('POST', url, {
       token: tp, form: imageForm(Buffer.alloc(3 * 1024 * 1024, 1), 'image/png', 'b.png'),
@@ -108,3 +122,47 @@ test(
     assert.equal(detail.json.data.cake.image_url, imageUrl);
   }
 );
+
+test('upload foto referensi custom order: guard & upload ke Cloudinary', async () => {
+  const url = '/api/orders/image';
+
+  assert.equal(
+    (await api('POST', url, { form: imageForm(PNG_1PX, 'image/png', 'ref.png') })).status,
+    401
+  );
+  assert.equal(
+    (await api('POST', url, {
+      token: tp, form: imageForm(PNG_1PX, 'image/png', 'ref.png'),
+    })).status,
+    403
+  );
+  assert.equal((await api('POST', url, { token: tb, form: new FormData() })).status, 400);
+  assert.equal(
+    (await api('POST', url, {
+      token: tb, form: imageForm(Buffer.from('x'), 'text/plain', 'ref.txt'),
+    })).status,
+    400
+  );
+
+  let uploadedOrderUrl;
+  try {
+    const res = await api('POST', url, {
+      token: tb, form: imageForm(PNG_1PX, 'image/png', 'ref.png'),
+    });
+    if (!canUpload) {
+      assert.equal(res.status, 502);
+      return;
+    }
+    assert.equal(res.status, 200);
+    uploadedOrderUrl = res.json?.data?.image_url;
+    assert.ok(uploadedOrderUrl && uploadedOrderUrl.startsWith('https://res.cloudinary.com/'));
+
+    const head = await fetch(uploadedOrderUrl, { method: 'HEAD' });
+    assert.equal(head.status, 200);
+  } finally {
+    if (uploadedOrderUrl) {
+      const m = uploadedOrderUrl.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-z0-9]+$/i);
+      if (m) await cloudinary.uploader.destroy(m[1], { invalidate: true });
+    }
+  }
+});
