@@ -173,12 +173,17 @@ class _CatalogViewState extends State<CatalogView> {
       MaterialPageRoute(builder: (context) => CreateOrderPage(cake: cake)),
     );
     if (created != null && mounted) {
+      final count = (created['count'] as num?)?.toInt() ?? 1;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             cake != null
-                ? 'Pesanan berhasil dibuat!'
-                : 'Pesanan custom berhasil diajukan!',
+                ? (count > 1
+                      ? '$count pesanan berhasil dibuat!'
+                      : 'Pesanan berhasil dibuat!')
+                : (count > 1
+                      ? '$count pesanan custom berhasil diajukan!'
+                      : 'Pesanan custom berhasil diajukan!'),
           ),
           backgroundColor: const Color(0xFF166534),
         ),

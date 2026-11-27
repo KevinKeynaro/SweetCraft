@@ -33,9 +33,20 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   Uint8List? _imageBytes;
   String? _imageFilename;
   DateTime? _pickupDateTime;
+  int _quantity = 1;
   bool _submitting = false;
 
   bool get _isReadyStock => widget.cake != null;
+
+  int get _maxQuantity {
+    if (!_isReadyStock) return 10;
+    final stock = widget.cake?['stock'];
+    if (stock is num) {
+      final intStock = stock.toInt();
+      return intStock < 1 ? 1 : intStock;
+    }
+    return 20;
+  }
 
   @override
   void dispose() {
@@ -147,23 +158,35 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       _imageBytes = null;
       _imageFilename = null;
       _pickupDateTime = null;
+      _quantity = 1;
     });
   }
 
-  void _handleSubmitSuccess(Map<String, dynamic>? order) {
+  void _handleSubmitSuccess(Map<String, dynamic>? order, int count) {
     if (!mounted) return;
     if (widget.embedded) {
       _resetForm();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pesanan custom berhasil diajukan!'),
-          backgroundColor: Color(0xFF166534),
+        SnackBar(
+          content: Text(
+            count > 1
+                ? '$count pesanan custom berhasil diajukan!'
+                : 'Pesanan custom berhasil diajukan!',
+          ),
+          backgroundColor: const Color(0xFF166534),
         ),
       );
       widget.onOrderCreated?.call();
       return;
     }
-    Navigator.pop(context, order ?? <String, dynamic>{'created': true});
+    Navigator.pop(
+      context,
+      <String, dynamic>{
+        'created': true,
+        'count': count,
+        'order': ?order,
+      },
+    );
   }
 
   Future<void> _submit() async {
@@ -189,6 +212,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
     setState(() => _submitting = true);
 
+    var createdCount = 0;
+    Map<String, dynamic>? lastOrder;
+
     try {
       if (!_isReadyStock && _imageBytes != null) {
         final uploadRes = await ApiService.uploadMultipart(
@@ -204,13 +230,36 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
         }
       }
 
-      final res = await ApiService.post('/orders', payload);
-      final order =
-          (res as Map<String, dynamic>?)?['order'] as Map<String, dynamic>?;
+      for (var i = 0; i < _quantity; i++) {
+        final res = await ApiService.post('/orders', payload);
+        lastOrder =
+            (res as Map<String, dynamic>?)?['order'] as Map<String, dynamic>?;
+        createdCount++;
+      }
 
-      _handleSubmitSuccess(order);
+      _handleSubmitSuccess(lastOrder, createdCount);
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (createdCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$createdCount dari $_quantity pesanan dibuat, sisanya gagal: ${e.message}',
+            ),
+            backgroundColor: const Color(0xFFB45309),
+          ),
+        );
+        if (widget.embedded) {
+          _resetForm();
+          widget.onOrderCreated?.call();
+        } else {
+          Navigator.pop(
+            context,
+            <String, dynamic>{'created': true, 'count': createdCount},
+          );
+        }
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.message),
@@ -219,6 +268,26 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       );
     } catch (_) {
       if (!mounted) return;
+      if (createdCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$createdCount dari $_quantity pesanan dibuat, sisanya gagal terkirim.',
+            ),
+            backgroundColor: const Color(0xFFB45309),
+          ),
+        );
+        if (widget.embedded) {
+          _resetForm();
+          widget.onOrderCreated?.call();
+        } else {
+          Navigator.pop(
+            context,
+            <String, dynamic>{'created': true, 'count': createdCount},
+          );
+        }
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Gagal mengirim pesanan. Periksa koneksi Anda.'),
@@ -419,6 +488,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   ),
                 ),
 
+                const SizedBox(height: 16),
+
+                _buildQuantitySection(cake),
+
                 const SizedBox(height: 26),
 
                 FilledButton(
@@ -445,11 +518,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                             color: Color(0xFFFFFFFF),
                           ),
                         )
-                      : Text(
-                          _isReadyStock
-                              ? 'Kirim Pesanan (${formatRupiah(cake?['price'])})'
-                              : 'Ajukan Pre-Order Custom',
-                        ),
+                      : Text(_submitButtonLabel(cake)),
                 ),
           ],
         ),
@@ -475,6 +544,88 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
         ),
       ),
       body: SafeArea(child: formContent),
+    );
+  }
+
+  String _submitButtonLabel(Map<String, dynamic>? cake) {
+    if (!_isReadyStock) {
+      return _quantity == 1
+          ? 'Ajukan Pre-Order Custom'
+          : 'Ajukan $_quantity Pre-Order Custom';
+    }
+    final rawPrice = cake?['price'];
+    final unitPrice = rawPrice is num
+        ? rawPrice.toDouble()
+        : (double.tryParse('${rawPrice ?? ''}') ?? 0.0);
+    final total = formatRupiah(unitPrice * _quantity);
+    return _quantity == 1
+        ? 'Kirim Pesanan ($total)'
+        : 'Kirim $_quantity Pesanan ($total)';
+  }
+
+  Widget _buildQuantitySection(Map<String, dynamic>? cake) {
+    final stock = cake?['stock'];
+    final maxQty = _maxQuantity;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE6DDD0)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Jumlah Pesanan',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF2B2118),
+                  ),
+                ),
+                if (_isReadyStock && stock is num)
+                  Text(
+                    'Tersedia: ${stock.toInt()}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5,
+                      color: const Color(0xFF6E5D4F),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          _QtyStepButton(
+            icon: Icons.remove_rounded,
+            tooltip: 'Kurangi jumlah',
+            enabled: !_submitting && _quantity > 1,
+            onTap: () => setState(() => _quantity--),
+          ),
+          SizedBox(
+            width: 38,
+            child: Text(
+              '$_quantity',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF2B2118),
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          _QtyStepButton(
+            icon: Icons.add_rounded,
+            tooltip: 'Tambah jumlah',
+            enabled: !_submitting && _quantity < maxQty,
+            onTap: () => setState(() => _quantity++),
+          ),
+        ],
+      ),
     );
   }
 
@@ -601,6 +752,46 @@ class _CakeSummaryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QtyStepButton extends StatelessWidget {
+  const _QtyStepButton({
+    required this.icon,
+    required this.tooltip,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: enabled ? const Color(0xFF8C4A27) : const Color(0xFFEFE9E1),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(
+              icon,
+              size: 20,
+              color: enabled
+                  ? const Color(0xFFFFFFFF)
+                  : const Color(0xFFA79A8C),
+            ),
+          ),
+        ),
       ),
     );
   }

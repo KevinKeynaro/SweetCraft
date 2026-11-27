@@ -86,6 +86,29 @@ void main() {
       expect(find.text('Strawberry Fruit Tart'), findsOneWidget);
       expect(find.text('Bread'), findsOneWidget);
       expect(find.text('Kirim Pesanan (Rp85.000)'), findsOneWidget);
+
+      // Tambah jumlah pesanan (1 -> 2 -> 3 -> 4, mentok di stok 4)
+      final addBtn = find.byTooltip('Tambah jumlah');
+      await tester.ensureVisible(addBtn);
+      await tester.tap(addBtn);
+      await tester.pump();
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('Kirim 2 Pesanan (Rp170.000)'), findsOneWidget);
+
+      await tester.tap(addBtn);
+      await tester.pump();
+      await tester.tap(addBtn);
+      await tester.pump();
+      await tester.tap(addBtn); // tidak melebihi stok 4
+      await tester.pump();
+      expect(find.text('4'), findsOneWidget);
+      expect(find.text('Kirim 4 Pesanan (Rp340.000)'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Kurangi jumlah'));
+      await tester.pump();
+      expect(find.text('3'), findsOneWidget);
+      expect(find.text('Kirim 3 Pesanan (Rp255.000)'), findsOneWidget);
+
       expect(tester.takeException(), isNull);
     },
   );
