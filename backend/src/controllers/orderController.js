@@ -9,10 +9,16 @@ const SELECT_ORDER = `SELECT o.id, o.user_id, u.name AS buyer_name, o.cake_id, c
   JOIN users u ON u.id = o.user_id
   LEFT JOIN cakes c ON c.id = o.cake_id`;
 
-// Transisi status yang diizinkan — mengikuti laporan §5:
-// ready-stock: pending -> processing -> ready -> completed
-// custom:      pending -> approved (harga final) -> processing -> ready -> completed
-const TRANSITIONS = {
+// Transisi status yang boleh dilakukan PENJUAL.
+// ready-stock: pending -> approved -> processing -> ready -> completed
+// custom:      pending -> processing -> ready -> completed
+// Pesanan custom tidak lagi disetujui penjual; pembeli yang memutuskan
+// approved/rejected setelah penjual menetapkan harga final.
+//
+// Catatan: UI penjual hanya menampilkan "Terima & Proses" (pending -> processing)
+// untuk ready-stock, jadi pending -> approved sengaja dipertahankan sebagai
+// jalur API untuk konfirmasi eksplisit di masa depan (mis. pembayaran/DP).
+const SELLER_TRANSITIONS = {
   pending: ['approved', 'processing', 'rejected'],
   approved: ['processing'],
   processing: ['ready'],
@@ -22,9 +28,22 @@ const TRANSITIONS = {
   rejected: [],
 };
 
+// Pembeli hanya boleh membatalkan ready-stock dalam 60 menit sejak dibuat.
+// Jendela waktu dievaluasi di SQL (INTERVAL 60 MINUTE) agar memakai jam DB.
+
 async function findOrder(id) {
   const [rows] = await pool.query(`${SELECT_ORDER} WHERE o.id = ?`, [id]);
   return rows[0];
+}
+
+// Kembalikan stok ready-stock tepat satu kali saat pesanan dibatalkan/ditolak.
+// Stok NULL berarti tanpa batas, jadi tidak perlu dikembalikan.
+async function restoreStock(conn, order) {
+  if (order.order_type !== 'ready_stock' || order.cake_id == null) return;
+  await conn.query(
+    'UPDATE cakes SET stock = stock + 1 WHERE id = ? AND stock IS NOT NULL',
+    [order.cake_id]
+  );
 }
 
 async function createOrder(req, res) {
@@ -105,17 +124,146 @@ async function getOrder(req, res) {
   return ok(res, 200, 'Detail pesanan', { order });
 }
 
+// Penjual memperbarui status produksi. Row order dikunci agar transisi dan
+// pengembalian stok terjadi atomik. Sumber: MySQL 8.4 locking reads.
+// https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html
 async function updateStatus(req, res) {
-  const order = await findOrder(Number(req.params.id));
-  if (!order) return fail(res, 404, 'Pesanan tidak ditemukan');
-
   const { status } = req.body;
-  if (!TRANSITIONS[order.status].includes(status)) {
-    return fail(res, 400, `Tidak bisa mengubah status dari '${order.status}' ke '${status}'`);
-  }
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id, user_id, cake_id, order_type, status FROM orders WHERE id = ? FOR UPDATE',
+      [Number(req.params.id)]
+    );
+    const order = rows[0];
+    if (!order) {
+      await conn.rollback();
+      return fail(res, 404, 'Pesanan tidak ditemukan');
+    }
 
-  await pool.query('UPDATE orders SET status = ? WHERE id = ?', [status, order.id]);
-  return ok(res, 200, 'Status pesanan diperbarui', { order: await findOrder(order.id) });
+    // Pesanan custom disetujui pembeli setelah harga final ditetapkan penjual.
+    if (order.order_type === 'custom' && status === 'approved') {
+      await conn.rollback();
+      return fail(res, 400, 'Pesanan custom disetujui oleh pembeli, bukan penjual');
+    }
+    // Produksi custom baru boleh dimulai setelah pembeli menyetujui harga.
+    if (order.order_type === 'custom' && order.status === 'pending' && status === 'processing') {
+      await conn.rollback();
+      return fail(res, 400, 'Menunggu keputusan harga dari pembeli');
+    }
+
+    if (!SELLER_TRANSITIONS[order.status].includes(status)) {
+      await conn.rollback();
+      return fail(res, 400, `Tidak bisa mengubah status dari '${order.status}' ke '${status}'`);
+    }
+
+    await conn.query('UPDATE orders SET status = ? WHERE id = ?', [status, order.id]);
+    // Pesanan ready-stock yang ditolak penjual wajib mengembalikan stok.
+    if (status === 'rejected') await restoreStock(conn, order);
+
+    await conn.commit();
+    return ok(res, 200, 'Status pesanan diperbarui', { order: await findOrder(order.id) });
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+// Pembeli memutuskan hasil pre-order custom: menerima atau menolak harga final.
+async function updateBuyerDecision(req, res) {
+  const { status } = req.body; // 'approved' | 'rejected'
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id, user_id, cake_id, order_type, status, agreed_price FROM orders WHERE id = ? FOR UPDATE',
+      [Number(req.params.id)]
+    );
+    const order = rows[0];
+    if (!order) {
+      await conn.rollback();
+      return fail(res, 404, 'Pesanan tidak ditemukan');
+    }
+    if (order.user_id !== req.user.id) {
+      await conn.rollback();
+      return fail(res, 403, 'Tidak boleh mengubah pesanan milik orang lain');
+    }
+    if (order.order_type !== 'custom') {
+      await conn.rollback();
+      return fail(res, 400, 'Keputusan harga hanya untuk pesanan custom');
+    }
+    if (order.status !== 'pending') {
+      await conn.rollback();
+      return fail(res, 400, `Pesanan berstatus '${order.status}' tidak bisa diputuskan`);
+    }
+    if (status === 'approved' && order.agreed_price == null) {
+      await conn.rollback();
+      return fail(res, 400, 'Harga final belum ditetapkan penjual');
+    }
+
+    await conn.query('UPDATE orders SET status = ? WHERE id = ?', [status, order.id]);
+    await conn.commit();
+    return ok(res, 200, 'Keputusan pesanan disimpan', { order: await findOrder(order.id) });
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+// Pembeli membatalkan pesanan sendiri. Ready-stock dibatasi 60 menit dan
+// stoknya dikembalikan; custom hanya boleh dibatalkan selama masih pending.
+async function cancelOrder(req, res) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      `SELECT id, user_id, cake_id, order_type, status, created_at,
+              (created_at >= (NOW() - INTERVAL 60 MINUTE)) AS within_cancel_window
+       FROM orders WHERE id = ? FOR UPDATE`,
+      [Number(req.params.id)]
+    );
+    const order = rows[0];
+    if (!order) {
+      await conn.rollback();
+      return fail(res, 404, 'Pesanan tidak ditemukan');
+    }
+    if (order.user_id !== req.user.id) {
+      await conn.rollback();
+      return fail(res, 403, 'Tidak boleh membatalkan pesanan milik orang lain');
+    }
+
+    if (order.order_type === 'custom') {
+      if (order.status !== 'pending') {
+        await conn.rollback();
+        return fail(res, 400, 'Pre-order yang sudah disetujui tidak bisa dibatalkan');
+      }
+    } else {
+      if (order.status !== 'pending' && order.status !== 'approved') {
+        await conn.rollback();
+        return fail(res, 400, `Pesanan berstatus '${order.status}' tidak bisa dibatalkan`);
+      }
+      if (!order.within_cancel_window) {
+        await conn.rollback();
+        return fail(res, 400, 'Batas waktu pembatalan 60 menit sudah lewat');
+      }
+    }
+
+    await conn.query("UPDATE orders SET status = 'cancelled' WHERE id = ?", [order.id]);
+    await restoreStock(conn, order);
+
+    await conn.commit();
+    return ok(res, 200, 'Pesanan dibatalkan', { order: await findOrder(order.id) });
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 async function updatePrice(req, res) {
@@ -124,11 +272,18 @@ async function updatePrice(req, res) {
   if (order.order_type !== 'custom') {
     return fail(res, 400, 'Harga final hanya untuk pesanan custom');
   }
+  if (order.status !== 'pending') {
+    return fail(res, 400, 'Harga final hanya bisa diubah selama pesanan menunggu');
+  }
 
-  await pool.query('UPDATE orders SET agreed_price = ? WHERE id = ?', [
-    req.body.agreed_price,
-    order.id,
-  ]);
+  // Guard status di query: harga terkunci begitu pembeli memutuskan.
+  const [result] = await pool.query(
+    "UPDATE orders SET agreed_price = ? WHERE id = ? AND status = 'pending'",
+    [req.body.agreed_price, order.id]
+  );
+  if (result.affectedRows === 0) {
+    return fail(res, 400, 'Harga final hanya bisa diubah selama pesanan menunggu');
+  }
   return ok(res, 200, 'Harga final disimpan', { order: await findOrder(order.id) });
 }
 
@@ -155,6 +310,8 @@ module.exports = {
   listOrders,
   getOrder,
   updateStatus,
+  updateBuyerDecision,
+  cancelOrder,
   updatePrice,
   uploadCustomOrderImage,
 };

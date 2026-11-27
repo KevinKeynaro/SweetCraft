@@ -40,6 +40,11 @@ const updateStatusSchema = z.object({
   body: z.object({ status: z.enum(STATUSES, 'Status tidak valid') }),
 });
 
+// Pembeli hanya memilih menerima atau menolak harga final pre-order custom.
+const buyerDecisionSchema = z.object({
+  body: z.object({ status: z.enum(['approved', 'rejected'], 'Keputusan tidak valid') }),
+});
+
 const updatePriceSchema = z.object({
   body: z.object({ agreed_price: z.number().positive('Harga harus lebih dari 0') }),
 });
@@ -52,6 +57,7 @@ module.exports = {
   createOrderSchema,
   listOrdersQuerySchema,
   updateStatusSchema,
+  buyerDecisionSchema,
   updatePriceSchema,
   orderIdSchema,
 };
