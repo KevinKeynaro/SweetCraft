@@ -253,6 +253,7 @@ void main() {
     expect(find.text('Beranda'), findsOneWidget);
     expect(find.text('Produk'), findsOneWidget);
     expect(find.text('Tambah'), findsOneWidget);
+    expect(find.text('Pesanan'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
     expect(find.text('Dashboard Toko'), findsOneWidget);
     expect(find.text('Tidak Dapat Memuat Data'), findsOneWidget);

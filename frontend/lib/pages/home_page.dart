@@ -8,6 +8,7 @@ import '../widgets/buyer_orders_view.dart';
 import '../widgets/catalog_view.dart';
 import '../widgets/seller_home_view.dart';
 import '../widgets/seller_menu_view.dart';
+import '../widgets/seller_orders_view.dart';
 import 'add_edit_cake_page.dart';
 import 'catalog_page.dart';
 import 'create_order_page.dart';
@@ -364,6 +365,7 @@ class _HomePageState extends State<HomePage> {
                 });
               },
             ),
+            const SellerOrdersView(),
             _ProfileTab(
               name: widget.name,
               role: widget.role,
@@ -421,6 +423,7 @@ const List<NavBarItem> _sellerNavItems = [
   (icon: Icons.dashboard_outlined, label: 'Beranda'),
   (icon: Icons.inventory_2_outlined, label: 'Produk'),
   (icon: Icons.add_rounded, label: 'Tambah'),
+  (icon: Icons.receipt_long_outlined, label: 'Pesanan'),
   (icon: Icons.person_outline_rounded, label: 'Profil'),
 ];
 
