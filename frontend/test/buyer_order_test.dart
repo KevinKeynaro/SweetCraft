@@ -134,8 +134,9 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(360, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_wrap(const BuyerOrdersView()));
-      await tester.pump(const Duration(seconds: 16));
+      await tester.pumpWidget(
+        _wrap(const BuyerOrdersView(initialOrders: [])),
+      );
       await tester.pump();
 
       expect(find.text('Pesanan Saya'), findsOneWidget);
@@ -143,6 +144,158 @@ void main() {
       expect(find.text('Semua'), findsOneWidget);
       expect(find.text('Menunggu'), findsOneWidget);
       expect(find.text('Siap Diambil'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'BuyerOrdersView menampilkan filter Dibatalkan tanpa overflow di 360dp',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _wrap(const BuyerOrdersView(initialOrders: [])),
+      );
+      await tester.pump();
+
+      expect(find.text('Dibatalkan'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Pre-order custom: pembeli menyetujui harga final',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      int? decidedOrderId;
+      String? decidedStatus;
+
+      await tester.pumpWidget(
+        _wrap(
+          BuyerOrdersView(
+            initialOrders: [
+              {
+                'id': 21,
+                'order_type': 'custom',
+                'custom_description': 'Kue ulang tahun tema bunga',
+                'status': 'pending',
+                'agreed_price': 250000,
+                'created_at': '2026-11-27 10:00:00',
+              },
+            ],
+            onDecide: (orderId, status) async {
+              decidedOrderId = orderId;
+              decidedStatus = status;
+              return {'id': orderId, 'status': status};
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Custom Cake Pre-Order'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Setujui Harga'), findsOneWidget);
+      expect(find.text('Tolak Harga'), findsOneWidget);
+      expect(find.text('Batalkan Pesanan'), findsOneWidget);
+
+      await tester.tap(find.text('Setujui Harga'));
+      await tester.pumpAndSettle();
+      expect(find.text('Setujui Harga?'), findsOneWidget);
+
+      await tester.tap(find.text('Setujui').last);
+      await tester.pumpAndSettle();
+
+      expect(decidedOrderId, equals(21));
+      expect(decidedStatus, equals('approved'));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Ready-stock: pembeli membatalkan pesanan pending',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      int? cancelledOrderId;
+
+      await tester.pumpWidget(
+        _wrap(
+          BuyerOrdersView(
+            initialOrders: [
+              {
+                'id': 22,
+                'order_type': 'ready_stock',
+                'cake_name': 'Strawberry Fruit Tart',
+                'status': 'pending',
+                'agreed_price': 85000,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(minutes: 10))
+                    .toString(),
+              },
+            ],
+            onCancel: (orderId) async {
+              cancelledOrderId = orderId;
+              return {'id': orderId, 'status': 'cancelled'};
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Strawberry Fruit Tart'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Batalkan Pesanan'), findsOneWidget);
+
+      await tester.tap(find.text('Batalkan Pesanan'));
+      await tester.pumpAndSettle();
+      expect(find.text('Batalkan Pesanan?'), findsOneWidget);
+
+      await tester.tap(find.text('Batalkan').last);
+      await tester.pumpAndSettle();
+
+      expect(cancelledOrderId, equals(22));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Ready-stock lewat 60 menit tidak menampilkan tombol batal',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _wrap(
+          BuyerOrdersView(
+            initialOrders: [
+              {
+                'id': 23,
+                'order_type': 'ready_stock',
+                'cake_name': 'Matcha Almond Biscotti',
+                'status': 'pending',
+                'agreed_price': 52000,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(hours: 2))
+                    .toString(),
+              },
+            ],
+            onCancel: (orderId) async => {'id': orderId},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Matcha Almond Biscotti'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Batalkan Pesanan'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/api.dart';
+import 'order_shared_widgets.dart';
 import 'product_card.dart';
 
 /// Tampilan Daftar & Lacak Pesanan untuk Pembeli (`GET /api/orders` & `POST /api/orders`).
@@ -10,11 +11,20 @@ class BuyerOrdersView extends StatefulWidget {
     super.key,
     this.refreshSignal = 0,
     this.onBrowseCatalog,
+    this.initialOrders,
+    this.onDecide,
+    this.onCancel,
   });
 
   /// Bertambah setiap kali pesanan baru berhasil dibuat dari tab Home.
   final int refreshSignal;
   final VoidCallback? onBrowseCatalog;
+
+  /// Opsional untuk pengujian widget tanpa memanggil API langsung.
+  final List<Map<String, dynamic>>? initialOrders;
+  final Future<Map<String, dynamic>> Function(int orderId, String status)?
+  onDecide;
+  final Future<Map<String, dynamic>> Function(int orderId)? onCancel;
 
   @override
   State<BuyerOrdersView> createState() => _BuyerOrdersViewState();
@@ -22,23 +32,22 @@ class BuyerOrdersView extends StatefulWidget {
 
 class _BuyerOrdersViewState extends State<BuyerOrdersView> {
   List<Map<String, dynamic>> _orders = [];
+  late List<Map<String, dynamic>> _seedOrders;
   bool _loading = true;
   String? _error;
   String _selectedStatus = 'all';
 
-  static const _statusFilters = [
-    (key: 'all', label: 'Semua'),
-    (key: 'pending', label: 'Menunggu'),
-    (key: 'approved', label: 'Disetujui'),
-    (key: 'processing', label: 'Diproses'),
-    (key: 'ready', label: 'Siap Diambil'),
-    (key: 'completed', label: 'Selesai'),
-    (key: 'rejected', label: 'Ditolak'),
-  ];
-
   @override
   void initState() {
     super.initState();
+    _seedOrders = widget.initialOrders == null
+        ? const []
+        : List<Map<String, dynamic>>.from(widget.initialOrders!);
+    if (widget.initialOrders != null) {
+      _orders = List<Map<String, dynamic>>.from(_seedOrders);
+      _loading = false;
+      return;
+    }
     _loadOrders();
   }
 
@@ -51,6 +60,20 @@ class _BuyerOrdersViewState extends State<BuyerOrdersView> {
   }
 
   Future<void> _loadOrders() async {
+    if (widget.initialOrders != null) {
+      setState(() {
+        _orders = _seedOrders
+            .where(
+              (o) =>
+                  _selectedStatus == 'all' || o['status'] == _selectedStatus,
+            )
+            .map((o) => Map<String, dynamic>.from(o))
+            .toList();
+        _loading = false;
+      });
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -91,7 +114,7 @@ class _BuyerOrdersViewState extends State<BuyerOrdersView> {
     Map<String, dynamic> detail = summary;
 
     try {
-      if (orderId != null) {
+      if (orderId != null && widget.initialOrders == null) {
         final res = await ApiService.get('/orders/$orderId');
         final fetched = (res as Map<String, dynamic>?)?['order'];
         if (fetched is Map<String, dynamic>) {
@@ -110,154 +133,16 @@ class _BuyerOrdersViewState extends State<BuyerOrdersView> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) {
-        final orderType = detail['order_type'] as String? ?? 'ready_stock';
-        final isCustom = orderType == 'custom';
-        final status = detail['status'] as String? ?? 'pending';
-        final title = isCustom
-            ? 'Custom Cake Pre-Order'
-            : (detail['cake_name'] as String? ?? 'Pesanan Kue');
-        final customImageUrl = detail['custom_image_url'] as String?;
-        final customDesc = detail['custom_description'] as String?;
-        final note = detail['decoration_note'] as String?;
-        final pickup = detail['pickup_date']?.toString();
-        final agreedPrice = detail['agreed_price'];
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE6DDD0),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Pesanan #${detail['id'] ?? '-'}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF6E5D4F),
-                      ),
-                    ),
-                    _OrderStatusBadge(status: status),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF2B2118),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  agreedPrice != null
-                      ? 'Total Harga: ${formatRupiah(agreedPrice)}'
-                      : 'Harga final menunggu konfirmasi penjual',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF8C4A27),
-                  ),
-                ),
-                if (customImageUrl != null && customImageUrl.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Image.network(
-                        customImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const ColoredBox(
-                          color: Color(0xFFFAF7F2),
-                          child: Center(
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              color: Color(0xFF9C8370),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                if (customDesc != null && customDesc.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  _detailBlock('Deskripsi Custom', customDesc),
-                ],
-                if (note != null && note.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _detailBlock('Catatan Dekorasi', note),
-                ],
-                if (pickup != null && pickup.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _detailBlock('Jadwal Ambil', _formatOrderDate(pickup)),
-                ],
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    backgroundColor: const Color(0xFF8C4A27),
-                    foregroundColor: const Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Text('Tutup'),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _detailBlock(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFDFBF7),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE6DDD0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF6E5D4F),
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13.5,
-              color: const Color(0xFF2B2118),
-            ),
-          ),
-        ],
+      builder: (ctx) => _BuyerOrderSheet(
+        order: detail,
+        onDecide: widget.onDecide,
+        onCancel: widget.onCancel,
+        onUpdated: (updated) {
+          setState(() {
+            final idx = _orders.indexWhere((o) => o['id'] == updated['id']);
+            if (idx != -1) _orders[idx] = {..._orders[idx], ...updated};
+          });
+        },
       ),
     );
   }
@@ -283,50 +168,14 @@ class _BuyerOrdersViewState extends State<BuyerOrdersView> {
             ),
           ),
 
-          // Filter status menggunakan Wrap (tanpa scroll horizontal)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final item in _statusFilters)
-                  InkWell(
-                    onTap: () {
-                      setState(() => _selectedStatus = item.key);
-                      _loadOrders();
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: 40),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _selectedStatus == item.key
-                            ? const Color(0xFF5C341E)
-                            : const Color(0xFFFFFFFF),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _selectedStatus == item.key
-                              ? const Color(0xFF5C341E)
-                              : const Color(0xFFE6DDD0),
-                        ),
-                      ),
-                      child: Text(
-                        item.label,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: _selectedStatus == item.key
-                              ? const Color(0xFFFFFFFF)
-                              : const Color(0xFF2B2118),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+            child: OrderFilterChipsRow(
+              selectedStatus: _selectedStatus,
+              onSelected: (statusKey) {
+                setState(() => _selectedStatus = statusKey);
+                _loadOrders();
+              },
             ),
           ),
 
@@ -444,7 +293,7 @@ class _BuyerOrdersViewState extends State<BuyerOrdersView> {
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final order = _orders[index];
-        return _BuyerOrderCard(
+        return OrderSummaryCard(
           order: order,
           onTap: () => _openOrderDetail(order),
         );
@@ -453,119 +302,127 @@ class _BuyerOrdersViewState extends State<BuyerOrdersView> {
   }
 }
 
-class _BuyerOrderCard extends StatelessWidget {
-  const _BuyerOrderCard({required this.order, required this.onTap});
+/// Detail pesanan pembeli + aksi keputusan pre-order dan pembatalan.
+///
+/// Aturan backend yang dicerminkan di sini:
+/// - custom `pending`: setujui/tolak harga final, atau batalkan.
+/// - ready-stock `pending`/`approved`: batalkan dalam 60 menit sejak dibuat.
+class _BuyerOrderSheet extends StatefulWidget {
+  const _BuyerOrderSheet({
+    required this.order,
+    required this.onUpdated,
+    this.onDecide,
+    this.onCancel,
+  });
 
   final Map<String, dynamic> order;
-  final VoidCallback onTap;
+  final ValueChanged<Map<String, dynamic>> onUpdated;
+  final Future<Map<String, dynamic>> Function(int orderId, String status)?
+  onDecide;
+  final Future<Map<String, dynamic>> Function(int orderId)? onCancel;
 
   @override
-  Widget build(BuildContext context) {
-    final orderType = order['order_type'] as String? ?? 'ready_stock';
-    final isCustom = orderType == 'custom';
-    final status = order['status'] as String? ?? 'pending';
-    final title = isCustom
-        ? 'Custom Cake Pre-Order'
-        : (order['cake_name'] as String? ?? 'Pesanan Kue');
-    final note = order['decoration_note'] as String?;
-    final desc = order['custom_description'] as String?;
-    final agreedPrice = order['agreed_price'];
-    final pickup = order['pickup_date']?.toString();
+  State<_BuyerOrderSheet> createState() => _BuyerOrderSheetState();
+}
 
-    return Material(
-      color: const Color(0xFFFFFFFF),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE6DDD0)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x082B2118),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
+class _BuyerOrderSheetState extends State<_BuyerOrderSheet> {
+  late Map<String, dynamic> _order = Map<String, dynamic>.from(widget.order);
+  bool _saving = false;
+
+  static const _cancelWindow = Duration(minutes: 60);
+
+  String get _status => _order['status'] as String? ?? 'pending';
+  bool get _isCustom => _order['order_type'] == 'custom';
+  bool get _hasPrice => _order['agreed_price'] != null;
+
+  bool get _withinCancelWindow {
+    final raw = _order['created_at']?.toString();
+    if (raw == null || raw.isEmpty) return true;
+    final createdAt = DateTime.tryParse(raw.replaceFirst(' ', 'T'));
+    if (createdAt == null) return true;
+    return DateTime.now().difference(createdAt) < _cancelWindow;
+  }
+
+  bool get _canCancel {
+    if (_isCustom) return _status == 'pending';
+    return (_status == 'pending' || _status == 'approved') &&
+        _withinCancelWindow;
+  }
+
+  bool get _canDecide => _isCustom && _status == 'pending' && _hasPrice;
+
+  void _showSnack(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError
+            ? const Color(0xFF991B1B)
+            : const Color(0xFF166534),
+      ),
+    );
+  }
+
+  Future<bool> _confirm({
+    required String title,
+    required String body,
+    required String actionLabel,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => Dialog(
+        backgroundColor: const Color(0xFFFFFFFF),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    isCustom ? 'Custom Pre-Order' : 'Ready Stock',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF8C4A27),
-                    ),
-                  ),
-                  _OrderStatusBadge(status: status),
-                ],
-              ),
-              const SizedBox(height: 6),
               Text(
                 title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 15,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF2B2118),
                 ),
               ),
-              if (isCustom && desc != null && desc.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  desc,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12.5,
-                    color: const Color(0xFF6E5D4F),
-                  ),
+              const SizedBox(height: 8),
+              Text(
+                body,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: const Color(0xFF6E5D4F),
                 ),
-              ] else if (note != null && note.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Catatan: $note',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12.5,
-                    color: const Color(0xFF6E5D4F),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Text(
-                    agreedPrice != null
-                        ? formatRupiah(agreedPrice)
-                        : 'Menunggu harga penjual',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: agreedPrice != null
-                          ? const Color(0xFF8C4A27)
-                          : const Color(0xFF92400E),
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogCtx, false),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 44),
+                      foregroundColor: const Color(0xFF6E5D4F),
                     ),
+                    child: const Text('Kembali'),
                   ),
-                  if (pickup != null && pickup.isNotEmpty)
-                    Text(
-                      'Ambil: ${_formatOrderDate(pickup)}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        color: const Color(0xFF6E5D4F),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(dialogCtx, true),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(96, 44),
+                      backgroundColor: const Color(0xFF991B1B),
+                      foregroundColor: const Color(0xFFFFFFFF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
+                    child: Text(actionLabel),
+                  ),
                 ],
               ),
             ],
@@ -573,50 +430,231 @@ class _BuyerOrderCard extends StatelessWidget {
         ),
       ),
     );
+    return result == true;
   }
-}
 
-class _OrderStatusBadge extends StatelessWidget {
-  const _OrderStatusBadge({required this.status});
+  Future<void> _send({
+    required bool isCancel,
+    required String status,
+    required String success,
+  }) async {
+    final id = _order['id'];
+    if (id == null || _saving) return;
 
-  final String status;
+    setState(() => _saving = true);
+    try {
+      Map<String, dynamic>? updated;
+      if (isCancel) {
+        if (widget.onCancel != null) {
+          updated = await widget.onCancel!(id as int);
+        } else {
+          final res = await ApiService.post('/orders/$id/cancel', const {});
+          updated = (res as Map<String, dynamic>?)?['order']
+              as Map<String, dynamic>?;
+        }
+      } else {
+        if (widget.onDecide != null) {
+          updated = await widget.onDecide!(id as int, status);
+        } else {
+          final res = await ApiService.put('/orders/$id/decision', {
+            'status': status,
+          });
+          updated = (res as Map<String, dynamic>?)?['order']
+              as Map<String, dynamic>?;
+        }
+      }
+      if (!mounted) return;
+
+      final merged = {..._order, ...?updated, 'status': status};
+      setState(() => _order = merged);
+      widget.onUpdated(merged);
+      _showSnack(success);
+      Navigator.pop(context);
+    } on ApiException catch (e) {
+      _showSnack(e.message, isError: true);
+    } catch (_) {
+      _showSnack('Gagal memproses pesanan. Coba lagi.', isError: true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _decide(String status) async {
+    final id = _order['id'];
+    if (id == null) return;
+    final accepting = status == 'approved';
+    final confirmed = await _confirm(
+      title: accepting ? 'Setujui Harga?' : 'Tolak Harga?',
+      body: accepting
+          ? 'Harga final akan disetujui dan pesanan masuk ke produksi.'
+          : 'Penawaran harga akan ditolak dan pre-order berakhir.',
+      actionLabel: accepting ? 'Setujui' : 'Tolak',
+    );
+    if (!confirmed || !mounted) return;
+    await _send(
+      isCancel: false,
+      status: status,
+      success: accepting ? 'Harga disetujui' : 'Harga ditolak',
+    );
+  }
+
+  Future<void> _cancel() async {
+    final id = _order['id'];
+    if (id == null) return;
+    final confirmed = await _confirm(
+      title: 'Batalkan Pesanan?',
+      body: 'Pesanan #$id akan dibatalkan dan tidak dapat diproses lagi.',
+      actionLabel: 'Batalkan',
+    );
+    if (!confirmed || !mounted) return;
+    await _send(
+      isCancel: true,
+      status: 'cancelled',
+      success: 'Pesanan dibatalkan',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final (label, bg, fg) = switch (status) {
-      'approved' => ('Disetujui', const Color(0xFFDBEAFE), const Color(0xFF1E40AF)),
-      'processing' => ('Diproses', const Color(0xFFFEF3C7), const Color(0xFF92400E)),
-      'ready' => ('Siap Diambil', const Color(0xFFDCFCE7), const Color(0xFF166534)),
-      'completed' => ('Selesai', const Color(0xFFE6F4EA), const Color(0xFF1E6B3A)),
-      'rejected' => ('Ditolak', const Color(0xFFFDE8E8), const Color(0xFFA63232)),
-      'cancelled' => ('Dibatalkan', const Color(0xFFF3EFEA), const Color(0xFF6E5D4F)),
-      _ => ('Menunggu', const Color(0xFFFEF3C7), const Color(0xFF92400E)),
-    };
+    final title = _isCustom
+        ? 'Custom Cake Pre-Order'
+        : (_order['cake_name'] as String? ?? 'Pesanan Kue');
+    final customImageUrl = _order['custom_image_url'] as String?;
+    final customDesc = _order['custom_description'] as String?;
+    final note = _order['decoration_note'] as String?;
+    final pickup = _order['pickup_date']?.toString();
+    final agreedPrice = _order['agreed_price'];
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: fg,
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6DDD0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Pesanan #${_order['id'] ?? '-'}',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF6E5D4F),
+                  ),
+                ),
+                OrderStatusBadge(status: _status),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF2B2118),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              agreedPrice != null
+                  ? 'Total Harga: ${formatRupiah(agreedPrice)}'
+                  : 'Harga final menunggu konfirmasi penjual',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF8C4A27),
+              ),
+            ),
+            if (customImageUrl != null && customImageUrl.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              OrderCustomImagePreview(imageUrl: customImageUrl),
+            ],
+            if (customDesc != null && customDesc.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              OrderDetailBlock(label: 'Deskripsi Custom', value: customDesc),
+            ],
+            if (note != null && note.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              OrderDetailBlock(label: 'Catatan Dekorasi', value: note),
+            ],
+            if (pickup != null && pickup.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              OrderDetailBlock(
+                label: 'Jadwal Ambil',
+                value: formatOrderDate(pickup),
+              ),
+            ],
+            if (_canDecide) ...[
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: _saving ? null : () => _decide('approved'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: const Color(0xFF8C4A27),
+                  foregroundColor: const Color(0xFFFFFFFF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('Setujui Harga'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: _saving ? null : () => _decide('rejected'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  foregroundColor: const Color(0xFF991B1B),
+                  side: const BorderSide(color: Color(0xFF991B1B)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('Tolak Harga'),
+              ),
+            ],
+            if (_canCancel) ...[
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: _saving ? null : _cancel,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  foregroundColor: const Color(0xFF991B1B),
+                  side: const BorderSide(color: Color(0xFF991B1B)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('Batalkan Pesanan'),
+              ),
+            ],
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                backgroundColor: const Color(0xFF8C4A27),
+                foregroundColor: const Color(0xFFFFFFFF),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text('Tutup'),
+            ),
+          ],
         ),
       ),
     );
   }
-}
-
-String _formatOrderDate(String raw) {
-  final parsed = DateTime.tryParse(raw.replaceFirst(' ', 'T'));
-  if (parsed == null) return raw;
-  final d = parsed.day.toString().padLeft(2, '0');
-  final m = parsed.month.toString().padLeft(2, '0');
-  final hh = parsed.hour.toString().padLeft(2, '0');
-  final mm = parsed.minute.toString().padLeft(2, '0');
-  return '$d/$m ${parsed.year} $hh:$mm';
 }
